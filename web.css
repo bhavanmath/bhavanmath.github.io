@@ -14,5 +14,6 @@ body {
 .header-details {
     color: grey;
     margin-top: 0;
+    margin-bottom: 0;
     font-size: 10px;
 }
