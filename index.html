@@ -1,18 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio</title>
-    <link rel = "stylesheet" href = "web.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Isometra&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[Name] | Student Portfolio</title>
+  <meta name="description" content="Portfolio of [Name], a student at [College name].">
+
+  <!-- Custom fonts (needs an internet connection; fallbacks are set in style.css) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1 class = "header-name"> Bhavanjot </h1>
-    <p class = "header-details">bhavanmath@gmail.com</p>
-    <p class = "header-details">+91 93064 02058</p>
-    <p class = "header-details"></p>
+
+  <!-- Dark/light switch: style.css reads this hidden checkbox, so no JavaScript is needed -->
+  <input type="checkbox" id="theme-toggle" class="theme-toggle" aria-label="Dark mode">
+
+  <header class="nav">
+    <div class="nav__inner">
+      <a class="nav__brand" href="#home">[Name]</a>
+
+      <nav aria-label="Main">
+        <ul class="nav__links">
+          <li><a href="#home">Home</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#education">Education</a></li>
+          <li><a href="#skills">Skills</a></li>
+          <li><a href="#projects">Projects</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+
+      <label class="theme-btn" for="theme-toggle" title="Switch between dark and light mode"></label>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <section id="home" class="hero">
+      <h1>[Name]</h1>
+      <p class="lead">Student at [College name]. This portfolio brings together my studies, skills and projects.</p>
+      <div class="hero__actions">
+        <a class="btn btn--solid" href="#projects">View my projects</a>
+        <a class="btn" href="#contact">Contact me</a>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <h2>About</h2>
+      <div class="content">
+        <p>[Two or three sentences: what you study, what draws you to it, and what you want to do next.]</p>
+      </div>
+    </section>
+
+    <section id="education" class="section">
+      <h2>Education</h2>
+      <div class="content">
+        <article class="entry">
+          <h3>[Degree / Program]</h3>
+          <p class="meta">[College name], [Start year] to [End year]</p>
+          <p>[Relevant courses, grades or honours.]</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="skills" class="section">
+      <h2>Skills</h2>
+      <div class="content">
+        <ul class="skills">
+          <li>[Skill 1]</li>
+          <li>[Skill 2]</li>
+          <li>[Skill 3]</li>
+          <li>[Skill 4]</li>
+          <li>[Skill 5]</li>
+          <li>[Skill 6]</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="projects" class="section">
+      <h2>Projects</h2>
+      <div class="content">
+        <article class="entry">
+          <h3>[Project title]</h3>
+          <p>[What you built, and what it taught you.]</p>
+          <p class="meta">Built with [tools]</p>
+        </article>
+        <article class="entry">
+          <h3>[Project title]</h3>
+          <p>[What you built, and what it taught you.]</p>
+          <p class="meta">Built with [tools]</p>
+        </article>
+        <article class="entry">
+          <h3>[Project title]</h3>
+          <p>[What you built, and what it taught you.]</p>
+          <p class="meta">Built with [tools]</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <h2>Contact</h2>
+      <div class="content">
+        <p>Email is the quickest way to reach me.</p>
+        <dl class="contact">
+          <dt>Email</dt>
+          <dd><a href="mailto:[e-mail]">[e-mail]</a></dd>
+          <dt>Phone</dt>
+          <dd><a href="tel:[phone number]">[phone number]</a></dd>
+          <dt>College</dt>
+          <dd>[College name]</dd>
+        </dl>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="wrap footer">
+    <p>&copy; 2026 [Name]. Built with HTML and CSS.</p>
+  </footer>
+
 </body>
 </html>
