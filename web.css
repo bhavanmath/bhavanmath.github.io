@@ -1,19 +1,233 @@
+/* ==========================================================
+   Student portfolio - style.css
+   1. Theme tokens (light + dark)   2. Base   3. Navigation
+   4. Hero   5. Sections   6. Footer   7. Responsive / motion
+   ========================================================== */
+
+/* ---------- 1. Theme tokens ---------- */
+:root {
+  --bg: #f1f3f6;
+  --text: #1f2630;
+  --muted: #5d6773;
+  --line: #d9dee5;
+  --accent: #3f5f8a;
+  --accent-soft: #e1e8f1;
+  --on-accent: #ffffff;
+
+  --head: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  color-scheme: light;
+}
+
+/* Dark mode: applied when the hidden checkbox in index.html is ticked */
+:root:has(#theme-toggle:checked) {
+  --bg: #12161c;
+  --text: #e6e9ee;
+  --muted: #9aa4b1;
+  --line: #272e38;
+  --accent: #8fb0d9;
+  --accent-soft: #1d2836;
+  --on-accent: #0f1620;
+  color-scheme: dark;
+}
+
+/* ---------- 2. Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
 body {
-    background-color: #0F0F0F;
-    font-family: Isometra;
-    padding-left: 20px;
+  margin: 0;
+  font-family: var(--body);
+  font-size: 1.075rem;
+  line-height: 1.75;
+  color: var(--text);
+  background: var(--bg);
+  transition: background-color .3s ease, color .3s ease;
 }
 
-.header-name {
-    color: white;
-    margin: 0;
-    margin-top: 20px;
-    margin-bottom: 0;
+a { color: var(--accent); }
+ul, dl { margin: 0; padding: 0; list-style: none; }
+p { margin: 0 0 1rem; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.wrap { width: min(100% - 2.5rem, 62rem); margin-inline: auto; }
+
+/* Visually hidden but still keyboard-focusable */
+.theme-toggle { position: absolute; opacity: 0; pointer-events: none; }
+
+/* ---------- 3. Navigation ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  transition: background-color .3s ease, border-color .3s ease;
 }
 
-.header-details {
-    color: grey;
-    margin-top: 0;
-    margin-bottom: 0;
-    font-size: 10px;
+.nav__inner {
+  width: min(100% - 2.5rem, 62rem);
+  margin-inline: auto;
+  padding-block: .75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.nav__brand {
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.nav__links { display: flex; gap: .25rem; }
+
+.nav__links a {
+  position: relative;
+  display: block;
+  padding: .35rem .7rem;
+  font-family: var(--head);
+  font-weight: 500;
+  font-size: .95rem;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color .2s ease;
+}
+
+/* Underline that slides in on hover and keyboard focus */
+.nav__links a::after {
+  content: "";
+  position: absolute;
+  left: .7rem;
+  right: .7rem;
+  bottom: .1rem;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .25s ease;
+}
+
+.nav__links a:hover,
+.nav__links a:focus-visible { color: var(--text); }
+
+.nav__links a:hover::after,
+.nav__links a:focus-visible::after { transform: scaleX(1); }
+
+/* Dark/light button: a label that ticks the hidden checkbox */
+.theme-btn {
+  cursor: pointer;
+  user-select: none;
+  padding: .35rem .9rem;
+  font-family: var(--head);
+  font-weight: 500;
+  font-size: .9rem;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  transition: border-color .2s ease, background-color .2s ease;
+}
+
+.theme-btn::before { content: "\263E\00a0 Dark"; }
+:root:has(#theme-toggle:checked) .theme-btn::before { content: "\2600\00a0 Light"; }
+
+.theme-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+:root:has(#theme-toggle:focus-visible) .theme-btn { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ---------- 4. Hero ---------- */
+.hero { padding: clamp(4rem, 14vw, 9rem) 0 clamp(3rem, 8vw, 5rem); }
+
+.hero h1 {
+  margin: 0 0 1.5rem;
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: clamp(3rem, 11vw, 7.5rem);
+  line-height: .95;
+  letter-spacing: -.035em;
+  overflow-wrap: anywhere;
+}
+
+.lead {
+  max-width: 34rem;
+  margin-bottom: 2rem;
+  font-size: clamp(1.15rem, 2.4vw, 1.4rem);
+  color: var(--muted);
+}
+
+.hero__actions { display: flex; flex-wrap: wrap; gap: .8rem; }
+
+.btn {
+  display: inline-block;
+  padding: .7rem 1.2rem;
+  font-family: var(--head);
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  transition: background-color .2s ease, filter .2s ease;
+}
+
+.btn:hover { background: var(--accent-soft); }
+.btn--solid { background: var(--accent); color: var(--on-accent); }
+.btn--solid:hover { background: var(--accent); filter: brightness(1.1); }
+
+/* ---------- 5. Sections ---------- */
+.section {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: 1rem 3rem;
+  padding: 3rem 0;
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 4.5rem;
+}
+
+.hero { scroll-margin-top: 4.5rem; }
+
+.section h2 {
+  margin: 0;
+  font-family: var(--head);
+  font-weight: 600;
+  font-size: 1.1rem;
+  line-height: 1.75;
+}
+
+.content p { max-width: 62ch; }
+
+.entry { margin-bottom: 1.6rem; padding-bottom: 1.6rem; border-bottom: 1px solid var(--line); }
+.entry:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
+.entry h3 { margin: 0 0 .3rem; font-family: var(--head); font-weight: 600; font-size: 1.3rem; line-height: 1.3; }
+.entry p { margin-bottom: .4rem; }
+
+.meta { color: var(--muted); font-size: .95rem; }
+
+.skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0 1.5rem; }
+.skills li { padding: .45rem 0; border-bottom: 1px solid var(--line); }
+
+.contact { display: grid; grid-template-columns: 6rem 1fr; gap: .4rem 1rem; }
+.contact dt { color: var(--muted); }
+.contact dd { margin: 0; overflow-wrap: anywhere; }
+.contact a { font-family: var(--head); font-weight: 500; font-size: 1.2rem; }
+
+/* ---------- 6. Footer ---------- */
+.footer { padding: 2rem 0 3rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+.footer p { margin: 0; }
+
+/* ---------- 7. Responsive / motion ---------- */
+@media (max-width: 720px) {
+  .nav__inner { flex-wrap: wrap; }
+  .nav__inner nav { order: 3; flex-basis: 100%; overflow-x: auto; }
+  .nav__links a { white-space: nowrap; }
+  .section { grid-template-columns: 1fr; gap: .5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition: none !important; }
 }
