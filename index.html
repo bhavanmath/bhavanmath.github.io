@@ -1,11 +1,7 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0, viewport-fit=cover"
@@ -13,453 +9,237 @@
 
     <title>Loading</title>
 
-
-    <!-- ==========================================
-         COMPUTERIZED FONT
-         ========================================== -->
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-
-    <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossorigin
-    >
-
     <link
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
         rel="stylesheet"
     >
 
-
     <style>
-
-        /* =========================================
-           GLOBAL RESET
-           ========================================= */
-
         * {
             box-sizing: border-box;
         }
 
-
         html,
         body {
-
             width: 100%;
             height: 100%;
-
             margin: 0;
             padding: 0;
-
             overflow: hidden;
-
-            background: #000000;
+            background: #000;
         }
 
-
-        /* =========================================
-           LOADING SCREEN
-           ========================================= */
+        body {
+            background: #000;
+        }
 
         #loading-screen {
-
             width: 100%;
             height: 100vh;
             height: 100dvh;
 
-
-            /*
-             * Safe-area support for phones with
-             * notches and rounded corners.
-             */
-
-            padding-top:
-                max(20px, env(safe-area-inset-top));
-
-            padding-right:
-                max(20px, env(safe-area-inset-right));
-
-            padding-bottom:
-                max(20px, env(safe-area-inset-bottom));
-
-            padding-left:
-                max(20px, env(safe-area-inset-left));
-
-
-            /*
-             * Grid dimensions are calculated
-             * dynamically using JavaScript.
-             */
+            padding:
+                max(var(--padding), env(safe-area-inset-top))
+                max(var(--padding), env(safe-area-inset-right))
+                max(var(--padding), env(safe-area-inset-bottom))
+                max(var(--padding), env(safe-area-inset-left));
 
             display: grid;
 
             grid-template-columns:
-                repeat(
-                    var(--cols),
-                    minmax(0, 1fr)
-                );
+                repeat(var(--cols), minmax(0, 1fr));
 
             grid-template-rows:
-                repeat(
-                    var(--rows),
-                    minmax(0, 1fr)
-                );
-
+                repeat(var(--rows), minmax(0, 1fr));
 
             gap: var(--gap);
 
-
-            /*
-             * Prevent the grid from ever
-             * overflowing the viewport.
-             */
-
-            min-width: 0;
-            min-height: 0;
-
             overflow: hidden;
 
-            background: #000000;
+            background: #000;
         }
 
-
-        /* =========================================
-           BINARY CHARACTERS
-           ========================================= */
-
         .bit {
-
             min-width: 0;
             min-height: 0;
 
-
             display: flex;
-
             align-items: center;
             justify-content: center;
 
-
-            /*
-             * ZEROES
-             *
-             * Soft gray.
-             */
+            font-family: "IBM Plex Mono", monospace;
+            font-size: clamp(9px, 1.1vw, 18px);
+            font-weight: 400;
+            line-height: 1;
+            letter-spacing: 0.02em;
 
             color: #8f8f8f;
 
-
-            /*
-             * Computerized / technical font.
-             */
-
-            font-family:
-                "IBM Plex Mono",
-                monospace;
-
-
-            font-size:
-                clamp(
-                    9px,
-                    1.1vw,
-                    18px
-                );
-
-
-            font-weight: 400;
-
-            line-height: 1;
-
-            letter-spacing: 0.02em;
-
-
             user-select: none;
-
             white-space: nowrap;
-
             overflow: hidden;
 
-
-            /*
-             * Smooth visual transition.
-             */
+            transform: scale(1);
 
             transition:
-                color 120ms ease-out,
-                opacity 120ms ease-out,
-                transform 120ms ease-out;
+                color 180ms ease,
+                opacity 180ms ease,
+                transform 180ms ease,
+                text-shadow 180ms ease;
         }
 
-
-        /* =========================================
-           ACTIVE 1s
-           ========================================= */
-
+        /*
+         * Normal illuminated 1
+         */
         .bit.one {
-
-            /*
-             * Bright white.
-             */
-
             color: #ffffff;
+
+            text-shadow:
+                0 0 4px rgba(255, 255, 255, 0.25);
         }
 
-
-        /* =========================================
-           BIT TRANSITION
-           ========================================= */
-
+        /*
+         * Moment when a bit is changing
+         */
         .bit.changing {
+            opacity: 0.35;
+            transform: scale(0.75);
 
-            /*
-             * Briefly dim and shrink the
-             * character while it changes.
-             */
-
-            opacity: 0.45;
-
-            transform: scale(0.82);
+            text-shadow: none;
         }
 
+        /*
+         * Bright flash when 0 becomes 1
+         */
+        .bit.illuminate {
+            color: #ffffff;
+
+            transform: scale(1.22);
+
+            text-shadow:
+                0 0 4px rgba(255, 255, 255, 0.9),
+                0 0 10px rgba(255, 255, 255, 0.65),
+                0 0 20px rgba(255, 255, 255, 0.35);
+
+            animation: illuminate 320ms ease-out forwards;
+        }
+
+        @keyframes illuminate {
+            0% {
+                color: #ffffff;
+                transform: scale(0.75);
+
+                text-shadow:
+                    0 0 3px rgba(255, 255, 255, 1),
+                    0 0 12px rgba(255, 255, 255, 0.9),
+                    0 0 28px rgba(255, 255, 255, 0.7);
+            }
+
+            35% {
+                color: #ffffff;
+                transform: scale(1.28);
+
+                text-shadow:
+                    0 0 5px rgba(255, 255, 255, 1),
+                    0 0 16px rgba(255, 255, 255, 0.9),
+                    0 0 30px rgba(255, 255, 255, 0.65);
+            }
+
+            100% {
+                color: #ffffff;
+                transform: scale(1);
+
+                text-shadow:
+                    0 0 4px rgba(255, 255, 255, 0.25);
+            }
+        }
     </style>
-
 </head>
-
 
 <body>
 
-
-    <!-- ==========================================
-         LOADING GRID
-         ========================================== -->
-
     <div id="loading-screen"></div>
 
-
     <script>
+        const screen = document.getElementById("loading-screen");
 
-
-        /* =========================================
-           ELEMENT
-           ========================================= */
-
-        const screen =
-            document.getElementById(
-                "loading-screen"
-            );
-
-
-        /* =========================================
-           CONFIGURATION
-           ========================================= */
-
-        const TOTAL_TIME = 2000;
-
+        let bits = [];
 
         /*
-         * Desired approximate size of each cell.
-         *
-         * These values are only used to calculate
-         * how many cells fit on the screen.
+         * Calculate the grid so it always fits
+         * inside the viewport without scrolling.
          */
-
-        const TARGET_CELL_WIDTH = 30;
-
-        const TARGET_CELL_HEIGHT = 30;
-
-
-        /* =========================================
-           GET VIEWPORT SIZE
-           ========================================= */
-
-        function getViewport() {
-
-            /*
-             * visualViewport gives more accurate
-             * dimensions on mobile browsers.
-             */
-
+        function getViewportSize() {
             if (window.visualViewport) {
-
                 return {
-
-                    width:
-                        window.visualViewport.width,
-
-                    height:
-                        window.visualViewport.height
-
+                    width: window.visualViewport.width,
+                    height: window.visualViewport.height
                 };
             }
 
-
             return {
-
-                width:
-                    window.innerWidth,
-
-                height:
-                    window.innerHeight
-
+                width: window.innerWidth,
+                height: window.innerHeight
             };
         }
 
 
-        /* =========================================
-           CALCULATE GRID DIMENSIONS
-           ========================================= */
-
-        function calculateGrid() {
-
-            const viewport =
-                getViewport();
-
-
-            const width =
-                viewport.width;
-
-            const height =
-                viewport.height;
-
-
-            /*
-             * Responsive edge padding.
-             */
+        function createGrid() {
+            const { width, height } = getViewportSize();
 
             const padding =
                 Math.min(
-                    Math.max(
-                        width * 0.04,
-                        20
-                    ),
+                    Math.max(width * 0.04, 20),
                     60
                 );
 
-
-            /*
-             * Responsive space between
-             * characters.
-             */
-
             const gap =
                 Math.min(
-                    Math.max(
-                        width * 0.012,
-                        6
-                    ),
+                    Math.max(width * 0.012, 6),
                     20
                 );
 
-
-            /*
-             * Available screen area.
-             */
+            const targetCellWidth = 30;
+            const targetCellHeight = 30;
 
             const availableWidth =
-                Math.max(
-                    1,
-                    width -
-                    padding * 2
-                );
-
+                width - padding * 2;
 
             const availableHeight =
-                Math.max(
-                    1,
-                    height -
-                    padding * 2
-                );
-
-
-            /*
-             * Calculate number of columns.
-             */
+                height - padding * 2;
 
             const cols =
                 Math.max(
                     1,
                     Math.floor(
-                        (
-                            availableWidth +
-                            gap
-                        ) /
-                        (
-                            TARGET_CELL_WIDTH +
-                            gap
-                        )
+                        (availableWidth + gap) /
+                        (targetCellWidth + gap)
                     )
                 );
-
-
-            /*
-             * Calculate number of rows.
-             */
 
             const rows =
                 Math.max(
                     1,
                     Math.floor(
-                        (
-                            availableHeight +
-                            gap
-                        ) /
-                        (
-                            TARGET_CELL_HEIGHT +
-                            gap
-                        )
+                        (availableHeight + gap) /
+                        (targetCellHeight + gap)
                     )
                 );
-
-
-            return {
-
-                rows,
-                cols,
-                padding,
-                gap
-
-            };
-        }
-
-
-        /* =========================================
-           CREATE GRID
-           ========================================= */
-
-        function createGrid() {
-
-            const {
-
-                rows,
-                cols,
-                padding,
-                gap
-
-            } = calculateGrid();
-
-
-            /*
-             * Clear previous grid.
-             */
-
-            screen.innerHTML = "";
-
-
-            /*
-             * Set CSS variables.
-             */
-
-            screen.style.setProperty(
-                "--rows",
-                rows
-            );
-
 
             screen.style.setProperty(
                 "--cols",
                 cols
             );
 
+            screen.style.setProperty(
+                "--rows",
+                rows
+            );
+
+            screen.style.setProperty(
+                "--padding",
+                `${padding}px`
+            );
 
             screen.style.setProperty(
                 "--gap",
@@ -467,594 +247,353 @@
             );
 
 
-            screen.style.padding =
-                `${padding}px`;
+            screen.innerHTML = "";
 
+            bits = [];
 
-            /*
-             * Total number of cells.
-             */
+            const total = rows * cols;
 
-            const totalCells =
-                rows * cols;
+            for (let i = 0; i < total; i++) {
 
+                const bit = document.createElement("div");
 
-            /*
-             * Create cells.
-             *
-             * EVERY CELL STARTS AS 0.
-             */
+                bit.className = "bit";
 
-            for (
-                let i = 0;
-                i < totalCells;
-                i++
-            ) {
+                bit.textContent = "0";
 
-                const bit =
-                    document.createElement(
-                        "div"
-                    );
+                screen.appendChild(bit);
 
-
-                bit.className =
-                    "bit";
-
-
-                bit.textContent =
-                    "0";
-
-
-                screen.appendChild(
-                    bit
-                );
+                bits.push(bit);
             }
         }
 
 
-        /* =========================================
-           CHANGE ONE BIT
-           ========================================= */
+        /*
+         * Change a bit.
+         */
+        function changeBit(bit, value, illuminate = false) {
 
-        function changeBit(
-            bit,
-            value
-        ) {
+            bit.classList.add("changing");
 
-            /*
-             * Begin subtle transition.
-             */
+            setTimeout(() => {
 
-            bit.classList.add(
-                "changing"
-            );
+                bit.textContent = value;
 
+                bit.classList.remove("changing");
 
-            setTimeout(
-                () => {
+                if (value === "1") {
 
+                    bit.classList.add("one");
 
                     /*
-                     * Change the actual
-                     * character.
+                     * Trigger illumination effect.
                      */
+                    if (illuminate) {
 
-                    bit.textContent =
-                        value;
+                        bit.classList.remove("illuminate");
 
+                        /*
+                         * Force animation restart.
+                         */
+                        void bit.offsetWidth;
 
-                    /*
-                     * 0 = gray
-                     *
-                     * 1 = bright white
-                     */
+                        bit.classList.add("illuminate");
 
-                    if (
-                        value === "1"
-                    ) {
-
-                        bit.classList.add(
-                            "one"
-                        );
-
+                        setTimeout(() => {
+                            bit.classList.remove("illuminate");
+                        }, 350);
                     }
 
-                    else {
+                } else {
 
-                        bit.classList.remove(
-                            "one"
-                        );
-                    }
+                    bit.classList.remove("one");
+                    bit.classList.remove("illuminate");
+                }
 
-
-                    /*
-                     * Allow browser to render
-                     * the new state before
-                     * removing transition.
-                     */
-
-                    requestAnimationFrame(
-                        () => {
-
-                            bit.classList.remove(
-                                "changing"
-                            );
-
-                        }
-                    );
-
-
-                },
-                45
-            );
+            }, 45);
         }
 
 
-        /* =========================================
-           RANDOM BIT CHANGES
-           ========================================= */
-
+        /*
+         * Randomly change bits.
+         */
         function randomizeBits(
-            bits,
-            amount
+            collection,
+            amount,
+            illuminateOnes = false
         ) {
 
-
-            const indices = [];
-
+            const shuffled = [...collection];
 
             /*
-             * Create list of indices.
+             * Fisher-Yates shuffle
              */
-
             for (
-                let i = 0;
-                i < bits.length;
-                i++
-            ) {
-
-                indices.push(i);
-            }
-
-
-            /*
-             * Fisher-Yates shuffle.
-             */
-
-            for (
-                let i =
-                    indices.length - 1;
-
+                let i = shuffled.length - 1;
                 i > 0;
-
                 i--
             ) {
 
                 const j =
                     Math.floor(
-                        Math.random() *
-                        (i + 1)
+                        Math.random() * (i + 1)
                     );
 
-
                 [
-                    indices[i],
-                    indices[j]
-
+                    shuffled[i],
+                    shuffled[j]
                 ] = [
-
-                    indices[j],
-                    indices[i]
-
+                    shuffled[j],
+                    shuffled[i]
                 ];
             }
 
 
-            /*
-             * Flip selected cells.
-             */
-
-            for (
-                let i = 0;
-
-                i < amount &&
-                i < indices.length;
-
-                i++
-            ) {
+            const selected =
+                shuffled.slice(
+                    0,
+                    Math.min(amount, shuffled.length)
+                );
 
 
-                const bit =
-                    bits[
-                        indices[i]
-                    ];
-
-
-                /*
-                 * 0 → 1
-                 *
-                 * 1 → 0
-                 */
+            selected.forEach(bit => {
 
                 const newValue =
                     bit.textContent === "0"
                         ? "1"
                         : "0";
 
-
                 changeBit(
                     bit,
-                    newValue
-                );
-            }
-        }
-
-
-        /* =========================================
-           START LOADING ANIMATION
-           ========================================= */
-
-        function startLoading() {
-
-
-            /*
-             * Build grid.
-             */
-
-            createGrid();
-
-
-            /*
-             * Get all binary cells.
-             */
-
-            const bits =
-                Array.from(
-                    document.querySelectorAll(
-                        ".bit"
-                    )
+                    newValue,
+                    newValue === "1" &&
+                    illuminateOnes
                 );
 
-
-            /*
-             * =====================================
-             * 0 ms
-             *
-             * ALL ZEROES
-             *
-             * Gray.
-             * =====================================
-             */
-
-
-            /*
-             * =====================================
-             * 250 ms
-             *
-             * FIRST FEW 1s
-             *
-             * They become bright white.
-             * =====================================
-             */
-
-            setTimeout(
-                () => {
-
-                    randomizeBits(
-                        bits,
-                        Math.max(
-                            4,
-                            Math.floor(
-                                bits.length *
-                                0.10
-                            )
-                        )
-                    );
-
-                },
-                250
-            );
-
-
-            /*
-             * =====================================
-             * 600 ms
-             *
-             * MORE 1s
-             * =====================================
-             */
-
-            setTimeout(
-                () => {
-
-                    randomizeBits(
-                        bits,
-                        Math.max(
-                            5,
-                            Math.floor(
-                                bits.length *
-                                0.15
-                            )
-                        )
-                    );
-
-                },
-                600
-            );
-
-
-            /*
-             * =====================================
-             * 950 ms
-             *
-             * MIXED ACTIVITY
-             *
-             * Some 1 → 0
-             * Some 0 → 1
-             *
-             * Prevents the animation from looking
-             * like a simple percentage counter.
-             * =====================================
-             */
-
-            setTimeout(
-                () => {
-
-                    randomizeBits(
-                        bits,
-                        Math.max(
-                            5,
-                            Math.floor(
-                                bits.length *
-                                0.12
-                            )
-                        )
-                    );
-
-                },
-                950
-            );
-
-
-            /*
-             * =====================================
-             * 1300 ms
-             *
-             * Increase number of bright 1s.
-             * =====================================
-             */
-
-            setTimeout(
-                () => {
-
-
-                    /*
-                     * Find all remaining zeroes.
-                     */
-
-                    const zeroBits =
-                        bits.filter(
-                            bit =>
-                                bit.textContent ===
-                                "0"
-                        );
-
-
-                    /*
-                     * Shuffle zeroes.
-                     */
-
-                    for (
-                        let i =
-                            zeroBits.length - 1;
-
-                        i > 0;
-
-                        i--
-                    ) {
-
-                        const j =
-                            Math.floor(
-                                Math.random() *
-                                (i + 1)
-                            );
-
-
-                        [
-                            zeroBits[i],
-                            zeroBits[j]
-
-                        ] = [
-
-                            zeroBits[j],
-                            zeroBits[i]
-
-                        ];
-                    }
-
-
-                    /*
-                     * Convert roughly 40% of
-                     * remaining zeroes into 1s.
-                     */
-
-                    const amount =
-                        Math.max(
-                            1,
-                            Math.floor(
-                                zeroBits.length *
-                                0.40
-                            )
-                        );
-
-
-                    for (
-                        let i = 0;
-                        i < amount;
-                        i++
-                    ) {
-
-                        changeBit(
-                            zeroBits[i],
-                            "1"
-                        );
-                    }
-
-                },
-                1300
-            );
-
-
-            /*
-             * =====================================
-             * 1750 ms
-             *
-             * FINAL TRANSITION
-             *
-             * Everything becomes bright white.
-             * =====================================
-             */
-
-            setTimeout(
-                () => {
-
-
-                    bits.forEach(
-                        bit => {
-
-
-                            /*
-                             * Slightly random delay
-                             * for organic movement.
-                             */
-
-                            const delay =
-                                Math.random() *
-                                180;
-
-
-                            setTimeout(
-                                () => {
-
-
-                                    if (
-                                        bit.textContent
-                                        !== "1"
-                                    ) {
-
-                                        changeBit(
-                                            bit,
-                                            "1"
-                                        );
-                                    }
-
-                                },
-                                delay
-                            );
-
-                        }
-                    );
-
-                },
-                1750
-            );
-
-
-            /*
-             * =====================================
-             * 2000 ms
-             *
-             * LOADING COMPLETE
-             * =====================================
-             */
-
-            setTimeout(
-                () => {
-
-
-                    /*
-                     * Your actual website can
-                     * start here.
-                     *
-                     * Example:
-                     *
-                     * window.location.href =
-                     *     "home.html";
-                     */
-
-                },
-                TOTAL_TIME
-            );
-        }
-
-
-        /* =========================================
-           INITIALIZE
-           ========================================= */
-
-        startLoading();
-
-
-        /* =========================================
-           RESPONSIVE RESIZING
-           ========================================= */
-
-        let resizeTimer;
-
-
-        function handleResize() {
-
-
-            clearTimeout(
-                resizeTimer
-            );
-
-
-            resizeTimer =
-                setTimeout(
-                    () => {
-
-                        /*
-                         * Recalculate the grid
-                         * whenever the viewport changes.
-                         */
-
-                        createGrid();
-
-                    },
-                    100
-                );
+            });
         }
 
 
         /*
-         * Desktop resize.
+         * Turn a portion of the remaining
+         * zeroes into illuminated ones.
          */
+        function convertRemainingZeros() {
+
+            const zeros =
+                bits.filter(
+                    bit => bit.textContent === "0"
+                );
+
+            /*
+             * Shuffle zeros.
+             */
+            for (
+                let i = zeros.length - 1;
+                i > 0;
+                i--
+            ) {
+
+                const j =
+                    Math.floor(
+                        Math.random() * (i + 1)
+                    );
+
+                [
+                    zeros[i],
+                    zeros[j]
+                ] = [
+                    zeros[j],
+                    zeros[i]
+                ];
+            }
+
+
+            const amount =
+                Math.ceil(
+                    zeros.length * 0.40
+                );
+
+
+            zeros
+                .slice(0, amount)
+                .forEach((bit, index) => {
+
+                    setTimeout(() => {
+
+                        changeBit(
+                            bit,
+                            "1",
+                            true
+                        );
+
+                    }, Math.random() * 250);
+
+                });
+        }
+
+
+        /*
+         * Final wave:
+         * remaining zeroes become illuminated 1s.
+         */
+        function finalWave() {
+
+            const zeros =
+                bits.filter(
+                    bit => bit.textContent === "0"
+                );
+
+
+            zeros.forEach(bit => {
+
+                const delay =
+                    Math.random() * 180;
+
+                setTimeout(() => {
+
+                    changeBit(
+                        bit,
+                        "1",
+                        true
+                    );
+
+                }, delay);
+
+            });
+        }
+
+
+        /*
+         * START
+         */
+
+        createGrid();
+
+
+        /*
+         * Initial scattered illumination
+         */
+        setTimeout(() => {
+
+            randomizeBits(
+                bits,
+                Math.max(4, Math.floor(bits.length * 0.10)),
+                true
+            );
+
+        }, 250);
+
+
+        /*
+         * Second wave
+         *
+         * Some 1s become 0s and some 0s
+         * become illuminated 1s.
+         */
+        setTimeout(() => {
+
+            randomizeBits(
+                bits,
+                Math.max(5, Math.floor(bits.length * 0.15)),
+                true
+            );
+
+        }, 600);
+
+
+        /*
+         * Third wave
+         */
+        setTimeout(() => {
+
+            randomizeBits(
+                bits,
+                Math.max(5, Math.floor(bits.length * 0.12)),
+                true
+            );
+
+        }, 950);
+
+
+        /*
+         * Larger transition
+         */
+        setTimeout(() => {
+
+            convertRemainingZeros();
+
+        }, 1300);
+
+
+        /*
+         * Final illumination wave
+         */
+        setTimeout(() => {
+
+            finalWave();
+
+        }, 1750);
+
+
+        /*
+         * At approximately 2 seconds,
+         * transition to your actual website.
+         *
+         * Example:
+         *
+         * window.location.href = "home.html";
+         *
+         * or:
+         *
+         * document.getElementById("loading-screen").remove();
+         */
+
+        setTimeout(() => {
+
+            // Your website transition goes here.
+
+        }, 2100);
+
+
+        /*
+         * Rebuild on orientation / viewport change.
+         */
+        let resizeTimeout;
+
+        function handleResize() {
+
+            clearTimeout(resizeTimeout);
+
+            resizeTimeout = setTimeout(() => {
+
+                createGrid();
+
+            }, 100);
+
+        }
+
 
         window.addEventListener(
             "resize",
             handleResize
         );
 
+        window.addEventListener(
+            "orientationchange",
+            handleResize
+        );
 
-        /*
-         * Mobile browser viewport resize
-         * and orientation changes.
-         */
-
-        if (
-            window.visualViewport
-        ) {
+        if (window.visualViewport) {
 
             window.visualViewport.addEventListener(
                 "resize",
                 handleResize
             );
+
         }
 
     </script>
 
 </body>
-
 </html>
-```
