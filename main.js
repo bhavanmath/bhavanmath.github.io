@@ -128,9 +128,19 @@
     let startTime = null;
     let rafId = 0;
 
-    // Ask the browser to fetch the Greek glyphs of the heading font before they are drawn
+    // Lock scrolling while loading. Done here (not in the HTML) so the page
+    // can never stay locked if this script fails to load.
+    body.classList.add('is-loading');
+
+    // Ask the browser to fetch the Greek glyphs of the heading font once the
+    // font stylesheet has arrived. Until then the letters use a system serif.
     if (showLetters && document.fonts && document.fonts.load) {
-      document.fonts.load('300 32px "Noto Serif Display"', '\u03b1\u03a9').catch(() => {});
+      const requestGreek = () => {
+        document.fonts.load('300 32px "Noto Serif Display"', '\u03b1\u03a9').catch(() => {});
+      };
+      const fontLink = document.querySelector('link[href*="fonts.googleapis.com"]');
+      if (!fontLink || fontLink.sheet) requestGreek();
+      else fontLink.addEventListener('load', requestGreek, { once: true });
     }
 
     function resize() {
@@ -328,9 +338,15 @@
 
   /* Start
      ====================================================================== */
-  splitHeroName();
-  initNavigation();
-  initCopyEmail();
-  setFooterYear();
-  initLoader();
+  // Each step is isolated: if one fails, the others (and the loader) still run.
+  [splitHeroName, initNavigation, initCopyEmail, setFooterYear].forEach((step) => {
+    try { step(); } catch (err) { console.error(err); }
+  });
+
+  try {
+    initLoader();
+  } catch (err) {
+    console.error(err);
+    finishLoading(document.getElementById('loader'));
+  }
 })();
