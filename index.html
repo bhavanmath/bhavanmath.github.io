@@ -15,27 +15,28 @@
   <meta property="og:description" content="Selected work, notes and achievements of Your Name.">
   <meta property="og:url" content="https://your-username.github.io/">
 
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <!-- <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"> -->
 
   <!-- Fonts: Noto Serif Display (headings) and Manrope (text). Both include Greek. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Noto+Serif+Display:wght@300;400&display=swap">
+  <!-- Loaded without blocking the page: a slow or blocked font request can no longer delay main.js. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Noto+Serif+Display:wght@300;400&display=swap" media="print" onload="this.media='all'">
 
   <link rel="stylesheet" href="web.css">
-  <script src="script.js" defer></script>
+  <script src="main.js" defer></script>
 
-  <!-- If JavaScript is switched off, skip the loading screen and show the page. -->
   <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Noto+Serif+Display:wght@300;400&display=swap">
+    <!-- If JavaScript is switched off, skip the loading screen and show the page. -->
     <style>
       .loader { display: none !important; }
-      body.is-loading { overflow: auto !important; }
       .header, .hero__foot { opacity: 1 !important; transform: none !important; }
     </style>
   </noscript>
 </head>
 
-<body class="is-loading">
+<body>
 
   <!-- Icon sprite (used by the link rows below) -->
   <svg class="sprite" aria-hidden="true" focusable="false">
