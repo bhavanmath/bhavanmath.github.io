@@ -147,6 +147,28 @@ svg { display: block; }
   pointer-events: none;
 }
 
+/* Failsafe: if main.js never runs (wrong folder, blocked file), the loader
+   still fades away after 6 seconds and the page is shown. When the script
+   works, the loader is already gone by then, so this has no effect. */
+@keyframes loader-timeout {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+@keyframes show-timeout {
+  to { opacity: 1; }
+}
+
+@keyframes reveal-timeout {
+  to { opacity: 1; transform: none; }
+}
+
+.loader { animation: loader-timeout 0.6s ease 6s forwards; }
+
+/* The header animates opacity only: any transform animation on it would trap
+   the position: fixed mobile menu inside the header's box. */
+.header { animation: show-timeout 0.6s ease 6s forwards; }
+.hero__foot { animation: reveal-timeout 0.6s ease 6s forwards; }
+
 .loader__canvas {
   position: absolute;
   inset: 0;
@@ -781,7 +803,7 @@ svg { display: block; }
   *,
   *::before,
   *::after {
-    animation: none !important;
+    animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
     transition-delay: 0s !important;
   }
