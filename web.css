@@ -1,3 +1,13 @@
+* {
+  scrollbar-width: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
 /* ==========================================================================
    Portfolio – style.css
 
