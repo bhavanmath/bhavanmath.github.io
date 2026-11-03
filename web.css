@@ -1,4 +1,6 @@
-
+* {
+  user-select: none;
+}
 /* ==========================================================================
    Portfolio – style.css
 
@@ -142,7 +144,7 @@ svg { display: block; }
   z-index: 1000;
   background: #000000;
   color: var(--text-2);
-  transition: opacity 0.7s ease, visibility 0s linear 0.7s;
+  transition: opacity 0.8s ease, visibility 0s linear 0.8s;
 }
 
 .loader.is-done {
@@ -158,21 +160,7 @@ svg { display: block; }
   to { opacity: 0; visibility: hidden; pointer-events: none; }
 }
 
-@keyframes show-timeout {
-  to { opacity: 1; }
-}
-
-@keyframes reveal-timeout {
-  to { opacity: 1; transform: none; }
-}
-
 .loader { animation: loader-timeout 0.6s ease 6s forwards; }
-
-/* The header animates opacity only: any transform animation on it would trap
-   the position: fixed mobile menu inside the header's box. */
-.header { animation: show-timeout 0.6s ease 6s forwards; }
-.hero__foot { animation: reveal-timeout 0.6s ease 6s forwards; }
-.scroll-cue { animation: show-timeout 0.6s ease 6s forwards; }
 
 /* The canvas fills the screen, except for the safe areas of notched phones,
    which stay plain black. The digit grid and its padding are drawn inside it. */
@@ -204,11 +192,7 @@ svg { display: block; }
   right: 0;
   z-index: 100;
   height: var(--header-h);
-  opacity: 0;
-  transition: opacity 0.8s ease 0.2s;
 }
-
-.is-loaded .header { opacity: 1; }
 
 /* The blur lives on a pseudo-element so the mobile menu (position: fixed)
    is not trapped inside the header's box. */
@@ -217,7 +201,7 @@ svg { display: block; }
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 1);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid transparent;
@@ -241,6 +225,15 @@ svg { display: block; }
   font-size: 1.25rem;
   font-weight: 400;
   letter-spacing: 0.01em;
+  transition: opacity 0.4s ease, visibility 0s;
+}
+
+/* Hidden while the big name on the first screen is in view. It keeps its space
+   so the navigation never shifts; a plain fade brings it in once the name has scrolled away. */
+.brand.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0s linear 0.4s;
 }
 
 .nav__list {
@@ -348,23 +341,7 @@ svg { display: block; }
     gap: 1.25rem;
     width: 100%;
     counter-increment: menu;
-    opacity: 0;
-    transform: translateY(0.75rem);
-    transition: opacity 0.5s ease, transform 0.6s var(--ease-out);
   }
-
-  .nav.is-open .nav__item {
-    opacity: 1;
-    transform: none;
-    transition-delay: calc(0.08s + var(--n, 0) * 0.05s);
-  }
-
-  .nav__item:nth-child(1) { --n: 0; }
-  .nav__item:nth-child(2) { --n: 1; }
-  .nav__item:nth-child(3) { --n: 2; }
-  .nav__item:nth-child(4) { --n: 3; }
-  .nav__item:nth-child(5) { --n: 4; }
-  .nav__item:nth-child(6) { --n: 5; }
 
   /* Greek letters number the menu: α, β, γ … */
   .nav__item::before {
@@ -416,28 +393,6 @@ svg { display: block; }
   letter-spacing: -0.025em;
 }
 
-/* Built by main.js: each letter drops in once loading finishes */
-.hero__title .word {
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.hero__title .char {
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(-0.6em) rotate(var(--r, -8deg));
-}
-
-.hero__title .char:nth-child(even) { --r: 7deg; }
-
-.is-loaded .hero__title .char {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity 0.35s ease calc(0.3s + var(--i, 0) * 60ms),
-    transform 1s cubic-bezier(0.22, 1.25, 0.36, 1) calc(0.3s + var(--i, 0) * 60ms);
-}
-
 .hero__foot {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -447,14 +402,6 @@ svg { display: block; }
     "socials";
   gap: 1.75rem 3rem;
   margin-top: auto;     /* pushes the details to the bottom of the first screen */
-  opacity: 0;
-  transform: translateY(0.75rem);
-  transition: opacity 1s ease 1s, transform 1s var(--ease-out) 1s;
-}
-
-.is-loaded .hero__foot {
-  opacity: 1;
-  transform: none;
 }
 
 @media (min-width: 48rem), (min-width: 32rem) and (max-height: 32rem) {
@@ -543,17 +490,13 @@ svg { display: block; }
 
 .btn--ghost:hover { border-color: var(--text); }
 
-/* "Scroll to see more": fades in after the intro, fades out as the visitor scrolls */
+/* "Scroll to see more": fades out as the visitor scrolls */
 .scroll-cue {
   align-self: center;
   display: block;
   margin-top: clamp(1.75rem, 5vh, 3rem);
   padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
-  opacity: 0;
-  transition: opacity 1s ease 1.5s;
 }
-
-.is-loaded .scroll-cue { opacity: 1; }
 
 .scroll-cue__inner {
   display: flex;
@@ -570,29 +513,9 @@ svg { display: block; }
 .scroll-cue__inner.is-gone { visibility: hidden; }
 
 .scroll-cue__line {
-  position: relative;
   width: 1px;
   height: 2.25rem;
-  overflow: hidden;
   background: var(--line-strong);
-}
-
-.scroll-cue__line::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 50%;
-  background: var(--text);
-  transform: translateY(-100%);
-  animation: cue-line 2.4s cubic-bezier(0.45, 0, 0.2, 1) 2.2s infinite;
-}
-
-@keyframes cue-line {
-  0%   { transform: translateY(-100%); }
-  70%  { transform: translateY(200%); }
-  100% { transform: translateY(200%); }
 }
 
 /* Short screens (small phones, phones on their side): tighten the first screen so it still fits */
@@ -762,7 +685,7 @@ svg { display: block; }
   height: 1.25rem;
   margin-top: 0.3rem;
   color: var(--text-3);
-  transition: transform 0.35s var(--ease-out), color 0.3s ease;
+  transition: color 0.3s ease;
 }
 
 /* Work: title and description, year and type, link icon */
@@ -855,10 +778,7 @@ svg { display: block; }
   .list:hover .row { opacity: 0.4; }
   .list .row:hover { opacity: 1; }
 
-  .row:hover .row__icon {
-    color: var(--text);
-    transform: translate(0.2rem, -0.2rem);
-  }
+  .row:hover .row__icon { color: var(--text); }
 }
 
 
@@ -924,6 +844,4 @@ svg { display: block; }
     transition-duration: 0.01ms !important;
     transition-delay: 0s !important;
   }
-
-  .scroll-cue__line::after { animation: none !important; }
 }
