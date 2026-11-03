@@ -1,445 +1,847 @@
+* {
+  user-select: none;
+}
 /* ==========================================================================
-   Portfolio – main.js
+   Portfolio – style.css
 
-   1. Settings
-   2. Hero name (splits the name into letters so they can drop in)
-   3. Loading screen (a grid of 0s and 1s)
-   4. Header and navigation
-   5. Copy email, footer year
+   1. Tokens          5. Hero
+   2. Base            6. Sections
+   3. Loading screen  7. Lists (work, notes, achievements, social)
+   4. Header & nav    8. Connect, footer, motion preferences
    ========================================================================== */
 
-(() => {
-  'use strict';
 
-  /* 1. Settings
-     ====================================================================== */
-  const LOADER_MS = 2000;           // length of the loading screen
-  const LOADER_MS_REDUCED = 1200;   // used when the visitor prefers reduced motion
+/* 1. Tokens
+   ========================================================================== */
+:root {
+  --bg: #000000;          /* pure black, as requested */
+  --text: #f2f2f2;
+  --text-2: #a3a3a3;      /* secondary text, 8:1 on black */
+  --text-3: #767676;      /* tertiary text, 4.7:1 on black */
+  --line: #1a1a1a;
+  --line-strong: #333333;
 
-  // Loading screen: a grid of 0s and 1s
-  const GRID_FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Roboto Mono", "DejaVu Sans Mono", "Courier New", monospace';
-  const GRID_PITCH_X = 2.1;         // distance between digit centres across, in font sizes
-  const GRID_PITCH_Y = 2.6;         // distance between digit centres down, in font sizes
-  const ALPHA_ZERO = 0.3;           // brightness of a 0
-  const ALPHA_ONE = 0.85;           // brightness of a 1
-  const FLIP_MS = 130;              // how long a single 0 <-> 1 change takes
-  const FLIP_FIRST = 0.06;          // nothing changes before 6% of the loading time (the all-0s start)
-  const FLIP_LAST = 0.80;           // ordinary cells have settled on 1 by 80%
-  const FLIP_FINAL = 0.86;          // the very last cell turns to 1 at 86%, then the all-1s grid is held
-  const BACKFLIP_SHARE = 0.2;       // share of cells that go 0 -> 1 -> 0 -> 1 on the way
+  --font-display: "Noto Serif Display", "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  const root = document.documentElement;
-  const body = document.body;
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  --pad: clamp(1.25rem, 5vw, 3.5rem);   /* page side padding */
+  --max: 72rem;                         /* content width */
+  --header-h: 4.25rem;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color-scheme: dark;
+}
 
 
-  /* 2. Hero name
-     ====================================================================== */
-  function splitHeroName() {
-    const title = document.querySelector('.hero__title');
-    if (!title) return;
+/* 2. Base
+   ========================================================================== */
+*,
+*::before,
+*::after { box-sizing: border-box; }
 
-    const text = title.textContent.trim();
-    title.setAttribute('aria-label', text);
-    title.textContent = '';
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-h) + 1rem);
+  scrollbar-gutter: stable;           /* the page never shifts sideways when the scrollbar appears */
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #000000;   /* a slim scrollbar that matches the theme */
+}
 
-    let index = 0;
-    const words = text.split(/\s+/);
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
 
-    words.forEach((word, w) => {
-      const wordEl = document.createElement('span');
-      wordEl.className = 'word';
-      wordEl.setAttribute('aria-hidden', 'true');
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
 
-      Array.from(word).forEach((ch) => {
-        const charEl = document.createElement('span');
-        charEl.className = 'char';
-        charEl.style.setProperty('--i', index++);
-        charEl.textContent = ch;
-        wordEl.appendChild(charEl);
-      });
+body.is-loading,
+body.menu-open { overflow: hidden; }
 
-      title.appendChild(wordEl);
-      if (w < words.length - 1) title.appendChild(document.createTextNode(' '));
-    });
+h1, h2, h3, p, ul, ol, dl, dd { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+
+a { color: inherit; text-decoration: none; }
+
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+svg { display: block; }
+
+::selection { background: #ffffff; color: #000000; }
+
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.container {
+  width: 100%;
+  max-width: calc(var(--max) + var(--pad) * 2);
+  margin-inline: auto;
+  padding-left: max(var(--pad), env(safe-area-inset-left));
+  padding-right: max(var(--pad), env(safe-area-inset-right));
+}
+
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2000;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: var(--text);
+  color: #000;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: none; }
+
+
+/* 3. Loading screen (grid of 0s and 1s)
+   ========================================================================== */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #000000;
+  color: var(--text-2);
+  transition: opacity 0.8s ease, visibility 0s linear 0.8s;
+}
+
+.loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Failsafe: if main.js never runs (wrong folder, blocked file), the loader
+   still fades away after 6 seconds and the page is shown. When the script
+   works, the loader is already gone by then, so this has no effect. */
+@keyframes loader-timeout {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+.loader { animation: loader-timeout 0.6s ease 6s forwards; }
+
+/* The canvas fills the screen, except for the safe areas of notched phones,
+   which stay plain black. The digit grid and its padding are drawn inside it. */
+.loader__canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@supports (top: env(safe-area-inset-top)) {
+  .loader__canvas {
+    top: env(safe-area-inset-top);
+    left: env(safe-area-inset-left);
+    width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
+    height: calc(100% - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+}
+
+
+/* 4. Header & navigation
+   ========================================================================== */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: var(--header-h);
+}
+
+/* The blur lives on a pseudo-element so the mobile menu (position: fixed)
+   is not trapped inside the header's box. */
+.header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(0, 0, 0, 1);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.header.is-scrolled::before { border-bottom-color: var(--line); }
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  height: 100%;
+}
+
+.brand {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  transition: opacity 0.4s ease, visibility 0s;
+}
+
+/* Hidden while the big name on the first screen is in view. It keeps its space
+   so the navigation never shifts; a plain fade brings it in once the name has scrolled away. */
+.brand.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+}
+
+.nav__list {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 2.6vw, 2.25rem);
+}
+
+.nav__link {
+  position: relative;
+  display: inline-block;
+  padding-block: 0.5rem;
+  color: var(--text-2);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: color 0.25s ease;
+}
+
+.nav__link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.15rem;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s var(--ease-out);
+}
+
+.nav__link:hover,
+.nav__link.is-active { color: var(--text); }
+
+.nav__link:hover::after,
+.nav__link.is-active::after { transform: scaleX(1); }
+
+.nav-toggle { display: none; }
+
+/* Phones and small tablets: full-screen menu */
+@media (max-width: 47.5rem) {
+  :root { --header-h: 4rem; }
+
+  .nav-toggle {
+    position: relative;
+    z-index: 2;
+    display: block;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-right: -0.6rem;
   }
 
-
-  /* 3. Loading screen
-     ====================================================================== */
-  let loadingFinished = false;
-
-  // Reveals the page and fades the loader away. Safe to call more than once.
-  function finishLoading(loader) {
-    if (loadingFinished) return;
-    loadingFinished = true;
-
-    body.classList.remove('is-loading');
-    root.classList.add('is-loaded');
-
-    if (!loader) return;
-    loader.classList.add('is-done');
-
-    const remove = () => { if (loader.parentNode) loader.remove(); };
-    loader.addEventListener('transitionend', (e) => {
-      if (e.target === loader && e.propertyName === 'opacity') remove();
-    });
-    setTimeout(remove, 1200); // fallback if transitionend never fires
+  .nav-toggle span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.5rem;
+    height: 1px;
+    margin-top: -0.5px;
+    background: var(--text);
+    transform: translateX(-50%) translateY(-0.2rem);
+    transition: transform 0.45s var(--ease-out);
   }
 
-  function clamp(value, min, max) {
-    return Math.min(Math.max(value, min), max);
+  .nav-toggle span + span { transform: translateX(-50%) translateY(0.2rem); }
+
+  .nav-toggle[aria-expanded="true"] span { transform: translateX(-50%) rotate(45deg); }
+  .nav-toggle[aria-expanded="true"] span + span { transform: translateX(-50%) rotate(-45deg); }
+
+  .nav {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    padding:
+      calc(var(--header-h) + 1rem)
+      max(var(--pad), env(safe-area-inset-right))
+      max(2rem, env(safe-area-inset-bottom))
+      max(var(--pad), env(safe-area-inset-left));
+    overflow-y: auto;
+    background: #000000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.45s var(--ease-out), visibility 0s linear 0.45s;
   }
 
-  // Lays the digits out on an evenly spaced grid that, together with its edge
-  // padding, fills the whole canvas. The digits always keep their natural
-  // proportions: only the gaps between them are adjusted so the grid fits exactly.
-  function createGrid(width, height) {
-    const shortSide = Math.min(width, height);
-    const fontSize = clamp(shortSide / 38, 13, 22);
-    const pad = clamp(shortSide * 0.05, 16, 48);
-
-    const innerW = Math.max(width - pad * 2, fontSize * 3);
-    const innerH = Math.max(height - pad * 2, fontSize * 3);
-    const cols = Math.max(3, Math.round(innerW / (fontSize * GRID_PITCH_X)));
-    const rows = Math.max(3, Math.round(innerH / (fontSize * GRID_PITCH_Y)));
-    const pitchX = innerW / cols;
-    const pitchY = innerH / rows;
-
-    return {
-      fontSize,
-      cols,
-      rows,
-      count: cols * rows,
-      xs: Array.from({ length: cols }, (_, c) => pad + (c + 0.5) * pitchX),
-      ys: Array.from({ length: rows }, (_, r) => pad + (r + 0.5) * pitchY)
-    };
+  .nav.is-open {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
   }
 
-  // Gives every cell a list of moments (as fractions of the loading time) at
-  // which it flips. Every cell starts as 0, so after one flip it shows 1, after
-  // two it shows 0 again, after three 1 again. Every cell ends on an odd
-  // number of flips, so the final grid is all 1s.
-  function createSchedule(grid, instant) {
-    const { cols, rows, count } = grid;
-    const times = new Array(count);
-
-    // Reduced motion: no flicker, the whole grid simply switches from 0 to 1 once.
-    if (instant) {
-      for (let i = 0; i < count; i++) times[i] = [0.5];
-      return times;
-    }
-
-    for (let i = 0; i < count; i++) {
-      const col = i % cols;
-      const row = (i / cols) | 0;
-      // 0 at the top-left corner, 1 at the bottom-right: a loose diagonal sweep
-      const sweep = (col / Math.max(cols - 1, 1) + row / Math.max(rows - 1, 1)) / 2;
-      const spread = 0.7 * Math.random() + 0.3 * sweep;
-
-      if (Math.random() < BACKFLIP_SHARE) {
-        const on = FLIP_FIRST + Math.random() * 0.45;                         // turns to 1 early,
-        const off = on + 0.08 + Math.random() * 0.1;                          // drops back to 0,
-        const again = Math.min(off + 0.08 + Math.random() * 0.12, FLIP_LAST); // and ends on 1
-        times[i] = [on, off, again];
-      } else {
-        times[i] = [FLIP_FIRST + (FLIP_LAST - FLIP_FIRST) * spread];
-      }
-    }
-
-    // Two anchor cells guarantee that no frame between the start and the end is
-    // all 0s or all 1s: one cell turns to 1 right at the start and never
-    // changes back, and one cell stays 0 until the very last moment.
-    const early = (Math.random() * count) | 0;
-    const late = (early + 1 + ((Math.random() * (count - 1)) | 0)) % count;
-    times[early] = [FLIP_FIRST + 0.01];
-    times[late] = [FLIP_FINAL];
-
-    return times;
+  .nav__list {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    width: 100%;
+    margin-block: auto;     /* centres vertically without clipping on short screens */
+    counter-reset: menu;
   }
 
-  function initLoader() {
-    const loader = document.getElementById('loader');
-    if (!loader) { finishLoading(null); return; }
-
-    const canvas = loader.querySelector('.loader__canvas');
-    const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
-
-    const duration = reducedMotion ? LOADER_MS_REDUCED : LOADER_MS;
-    const flipLength = reducedMotion ? 0 : FLIP_MS / duration; // as a fraction of the loading time
-    const showGrid = Boolean(ctx);
-
-    let width = 0;
-    let height = 0;
-    let grid = null;
-    let schedule = null;
-    let startTime = null;
-    let rafId = 0;
-    let observer = null;
-
-    // Lock scrolling while loading. Done here (not in the HTML) so the page
-    // can never stay locked if this script fails to load.
-    body.classList.add('is-loading');
-
-    // Re-fits the grid whenever the screen size changes (rotation, resizing,
-    // browser toolbars). The bitmap is scaled by one factor on both axes, so
-    // the digits can never be stretched.
-    function resize() {
-      if (!showGrid) return;
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      if (!w || !h) return;
-
-      // Sharp on high-density screens, but capped so a very large screen never
-      // has to paint an enormous bitmap (about 8 million pixels at most).
-      const maxScale = Math.min(w > 900 ? 2 : 3, Math.sqrt(8e6 / (w * h)));
-      const scale = Math.max(1, Math.min(window.devicePixelRatio || 1, maxScale));
-      canvas.width = Math.round(w * scale);
-      canvas.height = Math.round(h * scale);
-      const exact = canvas.width / w;
-      ctx.setTransform(exact, 0, 0, exact, 0, 0);
-
-      width = w;
-      height = h;
-
-      const next = createGrid(w, h);
-      const changed = !grid || next.cols !== grid.cols || next.rows !== grid.rows;
-      grid = next;
-      if (changed) schedule = createSchedule(grid, reducedMotion);
-    }
-
-    // progress: 0 (start) to 1 (end) of the loading time
-    function draw(progress) {
-      ctx.clearRect(0, 0, width, height);
-      ctx.font = grid.fontSize + 'px ' + GRID_FONT;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#ffffff';
-
-      const { cols, xs, ys, count } = grid;
-      const zeros = [];
-      const ones = [];
-      const changing = []; // cells in the middle of a change: [index, newValue, how far along]
-
-      for (let i = 0; i < count; i++) {
-        const list = schedule[i];
-        let flips = 0;
-        while (flips < list.length && list[flips] <= progress) flips++;
-
-        const value = flips & 1;
-        if (flips > 0 && flipLength > 0) {
-          const along = (progress - list[flips - 1]) / flipLength;
-          if (along < 1) {
-            changing.push([i, value, along * along * (3 - 2 * along)]);
-            continue;
-          }
-        }
-        (value ? ones : zeros).push(i);
-      }
-
-      const put = (digit, i) => ctx.fillText(digit, xs[i % cols], ys[(i / cols) | 0]);
-
-      ctx.globalAlpha = ALPHA_ZERO;
-      for (let k = 0; k < zeros.length; k++) put('0', zeros[k]);
-
-      ctx.globalAlpha = ALPHA_ONE;
-      for (let k = 0; k < ones.length; k++) put('1', ones[k]);
-
-      // Quick, soft cross-fade between the old and the new digit
-      for (let k = 0; k < changing.length; k++) {
-        const [i, value, t] = changing[k];
-        const from = value ? ALPHA_ZERO : ALPHA_ONE;
-        const to = value ? ALPHA_ONE : ALPHA_ZERO;
-        ctx.globalAlpha = from * (1 - t);
-        put(value ? '0' : '1', i);
-        ctx.globalAlpha = to * t;
-        put(value ? '1' : '0', i);
-      }
-
-      ctx.globalAlpha = 1;
-    }
-
-    function complete() {
-      cancelAnimationFrame(rafId);
-      if (observer) observer.disconnect();
-      window.removeEventListener('resize', resize);
-      finishLoading(loader);
-    }
-
-    function frame(now) {
-      if (startTime === null) startTime = now;
-      const progress = Math.min((now - startTime) / duration, 1);
-
-      if (showGrid && grid) draw(progress);
-
-      if (progress < 1) rafId = requestAnimationFrame(frame);
-      else complete();
-    }
-
-    resize();
-    window.addEventListener('resize', resize);
-    if (showGrid && 'ResizeObserver' in window) {
-      observer = new ResizeObserver(resize);
-      observer.observe(canvas);
-    }
-    rafId = requestAnimationFrame(frame);
-
-    // Safety net: never leave a visitor stuck on the loading screen
-    setTimeout(complete, duration + 3000);
+  .nav__item {
+    display: flex;
+    align-items: baseline;
+    gap: 1.25rem;
+    width: 100%;
+    counter-increment: menu;
   }
 
-
-  /* 4. Header and navigation
-     ====================================================================== */
-  function initNavigation() {
-    const header = document.querySelector('.header');
-    const toggle = document.querySelector('.nav-toggle');
-    const nav = document.getElementById('site-nav');
-    const links = Array.from(document.querySelectorAll('.nav__link'));
-    if (!header || !toggle || !nav || !links.length) return;
-
-    const sections = links
-      .map((link) => document.querySelector(link.getAttribute('href')))
-      .filter(Boolean);
-
-    // Mobile menu
-    const setMenu = (open) => {
-      nav.classList.toggle('is-open', open);
-      body.classList.toggle('menu-open', open);
-      toggle.setAttribute('aria-expanded', String(open));
-      toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-    };
-
-    toggle.addEventListener('click', () => {
-      setMenu(toggle.getAttribute('aria-expanded') !== 'true');
-    });
-
-    nav.addEventListener('click', (e) => {
-      if (e.target.closest('a')) setMenu(false);
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
-        setMenu(false);
-        toggle.focus();
-      }
-    });
-
-    const desktopQuery = window.matchMedia('(min-width: 47.5625rem)');
-    const onBreakpoint = (e) => { if (e.matches) setMenu(false); };
-    if (desktopQuery.addEventListener) desktopQuery.addEventListener('change', onBreakpoint);
-    else if (desktopQuery.addListener) desktopQuery.addListener(onBreakpoint);
-
-    // Header border and highlight for the section currently in view
-    const cue = document.querySelector('.scroll-cue__inner');
-    let ticking = false;
-
-    function update() {
-      ticking = false;
-      header.classList.toggle('is-scrolled', window.scrollY > 8);
-
-      // "Scroll to see more" fades out smoothly over the first fifth of a screen of scrolling
-      if (cue) {
-        const fade = clamp(1 - window.scrollY / (window.innerHeight * 0.2), 0, 1);
-        cue.style.opacity = fade < 1 ? String(fade) : '';
-        cue.classList.toggle('is-gone', fade <= 0.02);
-      }
-
-      const probe = window.scrollY + window.innerHeight * 0.35;
-      let current = sections[0];
-      sections.forEach((section) => {
-        if (section.getBoundingClientRect().top + window.scrollY <= probe) current = section;
-      });
-
-      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
-      if (atBottom) current = sections[sections.length - 1];
-
-      links.forEach((link) => {
-        const active = link.getAttribute('href') === '#' + current.id;
-        link.classList.toggle('is-active', active);
-        if (active) link.setAttribute('aria-current', 'location');
-        else link.removeAttribute('aria-current');
-      });
-    }
-
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(update);
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    update();
+  /* Greek letters number the menu: α, β, γ … */
+  .nav__item::before {
+    content: counter(menu, lower-greek);
+    flex: none;
+    width: 1.25rem;
+    color: var(--text-3);
+    font-size: 1rem;
   }
 
-
-  /* 5. Copy email, footer year
-     ====================================================================== */
-  function copyText(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(text);
-    }
-    // Fallback for older browsers
-    return new Promise((resolve, reject) => {
-      const area = document.createElement('textarea');
-      area.value = text;
-      area.setAttribute('readonly', '');
-      area.style.position = 'fixed';
-      area.style.opacity = '0';
-      document.body.appendChild(area);
-      area.select();
-      const ok = document.execCommand('copy');
-      area.remove();
-      ok ? resolve() : reject(new Error('Copy failed'));
-    });
+  .nav__link {
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 9vw, 3.25rem);
+    font-weight: 300;
+    line-height: 1.25;
+    padding-block: 0.25rem;
   }
 
-  function initCopyEmail() {
-    const button = document.getElementById('copy-email');
-    const link = document.getElementById('email-link');
-    const status = document.getElementById('copy-status');
-    if (!button || !link) return;
+  .nav__link::after { display: none; }
+  .nav__link.is-active { color: var(--text-2); }
+}
 
-    const idleLabel = button.textContent;
-    let timer = 0;
 
-    const flash = (message) => {
-      button.textContent = message;
-      if (status) status.textContent = message;
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        button.textContent = idleLabel;
-        if (status) status.textContent = '';
-      }, 1800);
-    };
+/* 5. Hero
+   ========================================================================== */
+/* The first screen: name close to the navigation bar, details and social links
+   at the bottom, and a "scroll" cue underneath. Everything else starts below it. */
+.hero {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;   /* "small viewport": stays calm when mobile browser toolbars hide */
+  padding-top: calc(var(--header-h) + clamp(0.75rem, 2.5vh, 1.5rem));
+}
 
-    button.addEventListener('click', () => {
-      copyText(link.textContent.trim()).then(() => flash('Copied'), () => flash('Copy failed'));
-    });
+.hero__inner {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.hero__title {
+  margin-bottom: clamp(1.75rem, 4.5vw, 3rem);
+  font-family: var(--font-display);
+  font-size: clamp(3.25rem, min(13vw, 22vh), 10.5rem);
+  font-weight: 300;
+  line-height: 0.98;
+  letter-spacing: -0.025em;
+}
+
+.hero__foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "intro"
+    "actions"
+    "socials";
+  gap: 1.75rem 3rem;
+  margin-top: auto;     /* pushes the details to the bottom of the first screen */
+}
+
+@media (min-width: 48rem), (min-width: 32rem) and (max-height: 32rem) {
+  .hero__foot {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "intro actions"
+      "socials actions";
+    align-items: end;
+  }
+}
+
+.hero__intro { grid-area: intro; max-width: 30rem; }
+
+.hero__role {
+  font-size: clamp(1.05rem, 0.95rem + 0.5vw, 1.3rem);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.hero__lead {
+  margin-top: 0.5rem;
+  color: var(--text-2);
+}
+
+.hero__actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Social icons: round outline buttons, the same quiet style as the ghost button */
+.socials {
+  grid-area: socials;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--text-2);
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.social svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.social:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0 1.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.btn--solid {
+  border-color: var(--text);
+  background: var(--text);
+  color: #000000;
+}
+
+.btn--solid:hover {
+  background: transparent;
+  color: var(--text);
+}
+
+.btn--ghost:hover { border-color: var(--text); }
+
+/* "Scroll to see more": fades out as the visitor scrolls */
+.scroll-cue {
+  align-self: center;
+  display: block;
+  margin-top: clamp(1.75rem, 5vh, 3rem);
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+}
+
+.scroll-cue__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  transition: color 0.3s ease;   /* opacity is driven directly by the scroll position (main.js) */
+}
+
+.scroll-cue:hover .scroll-cue__inner { color: var(--text); }
+.scroll-cue__inner.is-gone { visibility: hidden; }
+
+.scroll-cue__line {
+  width: 1px;
+  height: 2.25rem;
+  background: var(--line-strong);
+}
+
+/* Short screens (small phones, phones on their side): tighten the first screen so it still fits */
+@media (max-height: 40rem) {
+  .hero__title {
+    margin-bottom: 1rem;
+    font-size: clamp(2.75rem, min(13vw, 18vh), 10.5rem);
   }
 
-  function setFooterYear() {
-    const year = document.getElementById('year');
-    if (year) year.textContent = new Date().getFullYear();
+  .hero__foot { gap: 1.25rem 2rem; }
+
+  .scroll-cue {
+    margin-top: 1rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
 
+  .scroll-cue__line { height: 1.5rem; }
+}
 
-  /* Start
-     ====================================================================== */
-  // A fresh visit always starts on the first screen (unless the link points at a section)
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  if (!window.location.hash) window.scrollTo(0, 0);
+@media (max-height: 30rem) {
+  :root { --header-h: 3.5rem; }
 
-  // Each step is isolated: if one fails, the others (and the loader) still run.
-  [splitHeroName, initNavigation, initCopyEmail, setFooterYear].forEach((step) => {
-    try { step(); } catch (err) { console.error(err); }
-  });
+  .hero__title { font-size: clamp(2.25rem, min(13vw, 14vh), 10.5rem); }
+  .hero__lead { margin-top: 0.25rem; font-size: 0.875rem; }
+  .btn { min-height: 2.5rem; }
+  .social { width: 2.5rem; height: 2.5rem; }
+  .scroll-cue__line { display: none; }
+}
 
-  try {
-    initLoader();
-  } catch (err) {
-    console.error(err);
-    finishLoading(document.getElementById('loader'));
+
+/* 6. Sections
+   ========================================================================== */
+.section { padding-block: clamp(4.5rem, 12vw, 9rem); }
+
+.section__layout {
+  display: grid;
+  gap: clamp(2rem, 6vw, 4.5rem);
+}
+
+.section__head { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* Large Greek letter beside each section title (desktop only, decorative) */
+.section__mark {
+  display: none;
+  color: #262626;
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 8vw, 7rem);
+  font-weight: 300;
+  line-height: 1;
+}
+
+.section__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 5.5vw, 3.75rem);
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 56.25rem) {
+  .section__layout { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
+
+  .section__head {
+    position: sticky;
+    top: calc(var(--header-h) + 2rem);
+    align-self: start;
   }
-})();
+
+  .section__mark { display: block; }
+}
+
+.lead {
+  max-width: 34ch;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1rem + 2vw, 2.4rem);
+  font-weight: 300;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.prose { margin-top: 1.75rem; }
+.prose p { max-width: 62ch; color: var(--text-2); }
+.prose p + p { margin-top: 1.25rem; }
+
+.facts {
+  display: grid;
+  gap: 1.75rem 2.5rem;
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  padding-top: clamp(2rem, 4vw, 2.75rem);
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 36rem) {
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.facts dt {
+  margin-bottom: 0.25rem;
+  color: var(--text-3);
+  font-size: 0.875rem;
+}
+
+.facts dd { color: var(--text); }
+
+.text-link {
+  display: inline-block;
+  margin-top: 2.25rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--line-strong);
+  font-weight: 600;
+  transition: border-color 0.3s ease;
+}
+
+.text-link:hover { border-bottom-color: var(--text); }
+
+
+/* 7. Lists
+   ========================================================================== */
+.section__body > .lead + .list,
+.section__body > .email + .list { margin-top: clamp(2rem, 5vw, 3rem); }
+
+.list { border-top: 1px solid var(--line); }
+
+.row,
+.entry {
+  padding-block: clamp(1.4rem, 3vw, 2rem);
+  border-bottom: 1px solid var(--line);
+}
+
+.row {
+  display: grid;
+  align-items: start;
+  gap: 0.5rem 1.5rem;
+  transition: opacity 0.3s ease;
+}
+
+.row__main { grid-area: main; min-width: 0; }
+
+.row__title,
+.entry__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 1.1rem + 1.1vw, 1.9rem);
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.row__text,
+.entry__text {
+  margin-top: 0.5rem;
+  max-width: 54ch;
+  color: var(--text-2);
+  font-size: 0.9375rem;
+}
+
+.row__meta,
+.row__date {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.row__icon {
+  grid-area: icon;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.3rem;
+  color: var(--text-3);
+  transition: color 0.3s ease;
+}
+
+/* Work: title and description, year and type, link icon */
+.row--work {
+  grid-template-columns: minmax(0, 1fr) 1.25rem;
+  grid-template-areas:
+    "main icon"
+    "meta meta";
+}
+
+.row--work .row__meta {
+  grid-area: meta;
+  display: flex;
+  gap: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .row--work {
+    grid-template-columns: minmax(0, 1fr) 9rem 1.25rem;
+    grid-template-areas: "main meta icon";
+  }
+
+  .row--work .row__meta {
+    flex-direction: column;
+    gap: 0;
+    padding-top: 0.45rem;
+    text-align: right;
+  }
+}
+
+/* Notes: date, title and summary, link icon */
+.row--note {
+  grid-template-columns: minmax(0, 1fr) 1.25rem;
+  grid-template-areas:
+    "date icon"
+    "main main";
+}
+
+.row--note .row__date { grid-area: date; }
+
+@media (min-width: 40rem) {
+  .row--note {
+    grid-template-columns: 7rem minmax(0, 1fr) 1.25rem;
+    grid-template-areas: "date main icon";
+  }
+
+  .row--note .row__date { padding-top: 0.5rem; }
+}
+
+/* Social links: platform, handle, link icon */
+.row--social {
+  grid-template-columns: auto minmax(0, 1fr) 1.25rem;
+  grid-template-areas: "label handle icon";
+  align-items: center;
+  padding-block: 1.25rem;
+}
+
+.row__label { grid-area: label; font-weight: 600; }
+
+.row__handle {
+  grid-area: handle;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.row--social .row__icon { margin-top: 0; }
+
+/* Achievements: year, title, issuer */
+.entry {
+  display: grid;
+  gap: 0.35rem 2rem;
+}
+
+@media (min-width: 36rem) {
+  .entry { grid-template-columns: 6rem minmax(0, 1fr); }
+  .entry__year { padding-top: 0.4rem; }
+}
+
+.entry__year {
+  color: var(--text-3);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.entry__title { font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.65rem); }
+
+/* Hover: the row under the pointer stays bright, the others step back */
+@media (hover: hover) {
+  .list:hover .row { opacity: 0.4; }
+  .list .row:hover { opacity: 1; }
+
+  .row:hover .row__icon { color: var(--text); }
+}
+
+
+/* 8. Connect, footer, motion preferences
+   ========================================================================== */
+.email {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: clamp(2rem, 5vw, 3rem);
+}
+
+.email__link {
+  border-bottom: 1px solid var(--line-strong);
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 0.9rem + 3.6vw, 3.25rem);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  transition: border-color 0.3s ease;
+}
+
+.email__link:hover { border-bottom-color: var(--text); }
+
+.email__copy {
+  min-height: 2.5rem;
+  padding: 0 1.1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.email__copy:hover { color: var(--text); border-color: var(--text); }
+
+.footer {
+  padding-top: 2rem;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: 0.875rem;
+}
+
+.footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+.footer a { transition: color 0.3s ease; }
+.footer a:hover { color: var(--text); }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+}
