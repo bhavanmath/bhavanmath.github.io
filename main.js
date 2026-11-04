@@ -5,6 +5,7 @@
    2. Loading screen (a grid of 0s and 1s)
    3. Header and navigation
    4. Copy email, footer year
+   5. Hero drawing (the Lorenz attractor)
    ========================================================================== */
 
 (() => {
@@ -400,6 +401,166 @@
   }
 
 
+  /* 5. Hero drawing: the Lorenz attractor
+     ====================================================================== */
+  // The path of a chaotic system, computed here with a standard numerical method
+  // (fourth-order Runge-Kutta) and drawn once as a thin line. Two paths start
+  // almost exactly together (one millionth apart) and slowly drift apart: the
+  // "butterfly effect". The older part of each path is fainter than the newer part.
+  // It is a still picture: nothing moves, and it only redraws if the screen is resized.
+  const LORENZ = { sigma: 10, rho: 28, beta: 8 / 3, step: 0.004, duration: 26, offset: 1e-6 };
+
+  // Integrates dx/dt = sigma(y - x), dy/dt = x(rho - z) - y, dz/dt = xy - beta z
+  function lorenzRun(x, y, z, steps) {
+    const { sigma, rho, beta, step: dt } = LORENZ;
+    const out = new Float64Array(steps * 3);
+    for (let i = 0; i < steps; i++) {
+      const k1x = sigma * (y - x), k1y = x * (rho - z) - y, k1z = x * y - beta * z;
+      const ax = x + k1x * dt / 2, ay = y + k1y * dt / 2, az = z + k1z * dt / 2;
+      const k2x = sigma * (ay - ax), k2y = ax * (rho - az) - ay, k2z = ax * ay - beta * az;
+      const bx = x + k2x * dt / 2, by = y + k2y * dt / 2, bz = z + k2z * dt / 2;
+      const k3x = sigma * (by - bx), k3y = bx * (rho - bz) - by, k3z = bx * by - beta * bz;
+      const cx = x + k3x * dt, cy = y + k3y * dt, cz = z + k3z * dt;
+      const k4x = sigma * (cy - cx), k4y = cx * (rho - cz) - cy, k4z = cx * cy - beta * cz;
+      x += (k1x + 2 * k2x + 2 * k3x + k4x) * dt / 6;
+      y += (k1y + 2 * k2y + 2 * k3y + k4y) * dt / 6;
+      z += (k1z + 2 * k2z + 2 * k3z + k4z) * dt / 6;
+      out[i * 3] = x;
+      out[i * 3 + 1] = y;
+      out[i * 3 + 2] = z;
+    }
+    return out;
+  }
+
+  function buildLorenz() {
+    const steps = Math.round(LORENZ.duration / LORENZ.step);
+
+    // Let the path settle onto the attractor first, then start both paths from there
+    const warm = lorenzRun(0.1, 0, 0, 1000);
+    const n = warm.length - 3;
+    const start = [warm[n], warm[n + 1], warm[n + 2]];
+    const a = lorenzRun(start[0], start[1], start[2], steps);
+    const b = lorenzRun(start[0] + LORENZ.offset, start[1], start[2], steps);
+
+    // Flatten to the x-z plane (z pointing up) and measure the picture
+    const flat = (p) => {
+      const q = new Float32Array(steps * 2);
+      for (let i = 0; i < steps; i++) { q[i * 2] = p[i * 3]; q[i * 2 + 1] = -p[i * 3 + 2]; }
+      return q;
+    };
+    const pa = flat(a);
+    const pb = flat(b);
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    [pa, pb].forEach((q) => {
+      for (let i = 0; i < steps; i++) {
+        minX = Math.min(minX, q[i * 2]); maxX = Math.max(maxX, q[i * 2]);
+        minY = Math.min(minY, q[i * 2 + 1]); maxY = Math.max(maxY, q[i * 2 + 1]);
+      }
+    });
+
+    return { steps, pa, pb, minX, maxX, minY, maxY };
+  }
+
+  function toRgb(color, fallback) {
+    const m = /^#?([0-9a-f]{6})$/i.exec((color || '').trim());
+    if (!m) return fallback;
+    const v = parseInt(m[1], 16);
+    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  }
+
+  function initHeroArt() {
+    const title = document.querySelector('.hero__title');
+    if (!title) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'hero__art';
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label',
+      'Line drawing of the Lorenz attractor, the butterfly-shaped path of a chaotic system, ' +
+      'drawn from two almost identical starting points that slowly drift apart.');
+    wrap.appendChild(canvas);
+    title.insertAdjacentElement('afterend', wrap);
+
+    const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+    if (!ctx) { wrap.remove(); return; }
+
+    const data = buildLorenz();
+    const styles = getComputedStyle(root);
+    const bright = toRgb(styles.getPropertyValue('--text'), [242, 242, 242]);
+    const dim = toRgb(styles.getPropertyValue('--text-3'), [118, 118, 118]);
+
+    let drawnW = 0, drawnH = 0, drawnScale = 0, queued = 0;
+
+    // One path as a series of short strokes whose brightness grows from old to new
+    function strokePath(points, rgb, fromAlpha, toAlpha, x, y) {
+      const chunks = 60;
+      const per = Math.floor(data.steps / chunks);
+      for (let c = 0; c < chunks; c++) {
+        const t = c / (chunks - 1);
+        const alpha = fromAlpha + (toAlpha - fromAlpha) * Math.pow(t, 1.4);
+        ctx.strokeStyle = 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha.toFixed(3) + ')';
+        const first = c * per;
+        const last = Math.min(data.steps, first + per + 1);
+        ctx.beginPath();
+        ctx.moveTo(x(points[first * 2]), y(points[first * 2 + 1]));
+        for (let i = first + 1; i < last; i++) ctx.lineTo(x(points[i * 2]), y(points[i * 2 + 1]));
+        ctx.stroke();
+      }
+    }
+
+    function render() {
+      queued = 0;
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      const scale = Math.min(window.devicePixelRatio || 1, 2);
+      if (w === drawnW && h === drawnH && scale === drawnScale) return;
+      drawnW = w; drawnH = h; drawnScale = scale;
+
+      canvas.width = Math.max(1, Math.round(w * scale));
+      canvas.height = Math.max(1, Math.round(h * scale));
+      if (w < 120 || h < 110) return;   // not enough room: leave the space empty
+
+      // One scale factor for both directions, so the drawing is never stretched
+      const exact = canvas.width / w;
+      ctx.setTransform(exact, 0, 0, exact, 0, 0);
+
+      const margin = Math.min(w, h) * 0.07;
+      const spanX = data.maxX - data.minX;
+      const spanY = data.maxY - data.minY;
+      const k = Math.min((w - margin * 2) / spanX, (h - margin * 2) / spanY);
+      const offX = (w - spanX * k) / 2 - data.minX * k;
+      const offY = (h - spanY * k) / 2 - data.minY * k;
+      const x = (v) => v * k + offX;
+      const y = (v) => v * k + offY;
+
+      ctx.lineWidth = 1;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      strokePath(data.pb, dim, 0.06, 0.6, x, y);       // the path that started a millionth away
+      strokePath(data.pa, bright, 0.08, 0.9, x, y);    // the main path, on top
+
+      // A small dot where each path ends up
+      const end = data.steps - 1;
+      [[data.pb, dim], [data.pa, bright]].forEach(([points, rgb]) => {
+        ctx.fillStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+        ctx.beginPath();
+        ctx.arc(x(points[end * 2]), y(points[end * 2 + 1]), 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function schedule() {
+      if (!queued) queued = requestAnimationFrame(render);
+    }
+
+    render();
+    window.addEventListener('resize', schedule);
+    if ('ResizeObserver' in window) new ResizeObserver(schedule).observe(wrap);
+  }
+
+
   /* Start
      ====================================================================== */
   // A fresh visit always starts on the first screen (unless the link points at a section)
@@ -407,7 +568,7 @@
   if (!window.location.hash) window.scrollTo(0, 0);
 
   // Each step is isolated: if one fails, the others (and the loader) still run.
-  [initNavigation, initCopyEmail, setFooterYear].forEach((step) => {
+  [initNavigation, initCopyEmail, setFooterYear, initHeroArt].forEach((step) => {
     try { step(); } catch (err) { console.error(err); }
   });
 
