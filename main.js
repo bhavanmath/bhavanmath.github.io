@@ -3,7 +3,7 @@
 
    1. Settings
    2. Loading screen (a grid of 0s and 1s)
-   3. Header and navigation
+   3. Header, navigation and section numbers
    4. Copy email, footer year
    5. Hero drawing (the Lorenz attractor)
    ========================================================================== */
@@ -350,6 +350,29 @@
   }
 
 
+  // Numbers the sections in binary, following the order of the navigation links:
+  // Home is 0000 0000, About is 0000 0001, Work is 0000 0010, and so on. Add or remove
+  // a section and the numbers follow. They appear above each section title and in the
+  // phone menu. (index.html also holds the same text, as a fallback without JavaScript.)
+  function toBits(n) {
+    const bits = n.toString(2).padStart(8, '0');
+    return bits.slice(0, 4) + ' ' + bits.slice(4);
+  }
+
+  function initSectionNumbers() {
+    document.querySelectorAll('.nav__link').forEach((link, i) => {
+      const bits = toBits(i);
+
+      const item = link.closest('.nav__item');
+      if (item) item.setAttribute('data-bits', bits);
+
+      const section = document.querySelector(link.getAttribute('href'));
+      const mark = section && section.querySelector('.section__mark');
+      if (mark) mark.textContent = bits;
+    });
+  }
+
+
   /* 4. Copy email, footer year
      ====================================================================== */
   function copyText(text) {
@@ -568,7 +591,7 @@
   if (!window.location.hash) window.scrollTo(0, 0);
 
   // Each step is isolated: if one fails, the others (and the loader) still run.
-  [initNavigation, initCopyEmail, setFooterYear, initHeroArt].forEach((step) => {
+  [initNavigation, initSectionNumbers, initCopyEmail, setFooterYear, initHeroArt].forEach((step) => {
     try { step(); } catch (err) { console.error(err); }
   });
 
