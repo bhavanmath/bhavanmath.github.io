@@ -19,6 +19,7 @@
   --line-strong: #333333;
 
   --font-display: "Noto Serif Display", "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Roboto Mono", "DejaVu Sans Mono", "Courier New", monospace;   /* same stack as the loading screen */
   --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   --pad: clamp(1.25rem, 5vw, 3.5rem);   /* page side padding */
@@ -198,7 +199,7 @@ svg { display: block; }
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: rgba(0, 0, 0, 1);
+  background: rgba(0, 0, 0, 0.72);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid transparent;
@@ -329,7 +330,6 @@ svg { display: block; }
     gap: 0.25rem;
     width: 100%;
     margin-block: auto;     /* centres vertically without clipping on short screens */
-    counter-reset: menu;
   }
 
   .nav__item {
@@ -337,16 +337,17 @@ svg { display: block; }
     align-items: baseline;
     gap: 1.25rem;
     width: 100%;
-    counter-increment: menu;
   }
 
-  /* Greek letters number the menu: α, β, γ … */
+  /* The menu is numbered in binary, like the sections (Home is 0). main.js fills in data-bits. */
   .nav__item::before {
-    content: counter(menu, lower-greek);
+    content: attr(data-bits);
     flex: none;
-    width: 1.25rem;
+    width: 6.25rem;
     color: var(--text-3);
-    font-size: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    letter-spacing: 0.12em;
   }
 
   .nav__link {
@@ -360,6 +361,20 @@ svg { display: block; }
 
   .nav__link::after { display: none; }
   .nav__link.is-active { color: var(--text-2); }
+}
+
+
+/* Very narrow phones (320 px): tighter menu numbers so the longest link still fits */
+@media (max-width: 22.5rem) {
+  .nav__item { gap: 0.75rem; }
+
+  .nav__item::before {
+    width: 4.75rem;
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+  }
+
+  .nav__link { font-size: 1.875rem; }
 }
 
 
@@ -586,16 +601,19 @@ svg { display: block; }
   gap: clamp(2rem, 6vw, 4.5rem);
 }
 
-.section__head { display: flex; flex-direction: column; gap: 0.5rem; }
+.section__head { display: flex; flex-direction: column; }
 
-/* Large Greek letter beside each section title (desktop only, decorative) */
+/* A small binary number above each section title, in the same font as the loading
+   screen (decorative). It sits tight against the title so the two read as one unit. */
 .section__mark {
-  display: none;
-  color: #262626;
-  font-family: var(--font-display);
-  font-size: clamp(4rem, 8vw, 7rem);
-  font-weight: 300;
+  margin-bottom: 0.15rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
   line-height: 1;
+  letter-spacing: 0.12em;
+  white-space: pre;
+  user-select: none;
 }
 
 .section__title {
@@ -614,8 +632,6 @@ svg { display: block; }
     top: calc(var(--header-h) + 2rem);
     align-self: start;
   }
-
-  .section__mark { display: block; }
 }
 
 .lead {
