@@ -1,5 +1,18 @@
+/* Text can't be selected by default: no stray highlights from double-clicks or dragging,
+   which keeps the page looking clean. The -webkit- version is for Safari (iPhone, iPad, Mac). */
 * {
+  -webkit-user-select: none;
   user-select: none;
+}
+
+/* The few places where selecting is useful opt back in: the email address (so it can be
+   copied if no mail app is set up), form fields, code, and anything given the class "selectable". */
+input, textarea, pre, code, kbd, samp,
+pre *, code *,
+.selectable, .selectable *,
+.email__link {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* ==========================================================================
@@ -153,6 +166,26 @@ svg { display: block; }
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+}
+
+/* "press any key to skip": plain text in the last row of the grid (main.js positions it) */
+.loader__hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  margin: 0;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* When skipped, the loading screen fades away faster than it normally does */
+.loader.is-skipping {
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
 }
 
 /* Failsafe: if main.js never runs (wrong folder, blocked file), the loader
