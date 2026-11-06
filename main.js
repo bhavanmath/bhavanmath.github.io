@@ -16,6 +16,10 @@
   const LOADER_MS = 2000;           // length of the loading screen
   const LOADER_MS_REDUCED = 1200;   // used when the visitor prefers reduced motion
 
+  // The full loading screen plays once per browser session, and can be skipped
+  const INTRO_KEY = 'intro-seen';   // kept in sessionStorage: a new tab or window plays it again
+  const SKIP_GRACE_MS = 350;        // key presses and taps in the first moments are ignored
+
   // Loading screen: a grid of 0s and 1s
   const GRID_FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Roboto Mono", "DejaVu Sans Mono", "Courier New", monospace';
   const GRID_PITCH_X = 2.1;         // distance between digit centres across, in font sizes
@@ -46,6 +50,7 @@
     root.classList.add('is-loaded');
 
     if (!loader) return;
+    rememberIntro();
     loader.classList.add('is-done');
 
     const remove = () => { if (loader.parentNode) loader.remove(); };
@@ -53,6 +58,17 @@
       if (e.target === loader && e.propertyName === 'opacity') remove();
     });
     setTimeout(remove, 1200); // fallback if transitionend never fires
+  }
+
+  // The full loading screen plays once per browser session. Opening the page
+  // with ?intro on the end of the address (for example index.html?intro) plays it again.
+  function introAlreadySeen() {
+    if (new URLSearchParams(window.location.search).has('intro')) return false;
+    try { return window.sessionStorage.getItem(INTRO_KEY) === '1'; } catch (err) { return false; }
+  }
+
+  function rememberIntro() {
+    try { window.sessionStorage.setItem(INTRO_KEY, '1'); } catch (err) { /* storage blocked: it just plays every time */ }
   }
 
   function clamp(value, min, max) {
@@ -130,6 +146,13 @@
     const loader = document.getElementById('loader');
     if (!loader) { finishLoading(null); return; }
 
+    // Already seen in this browser session: no loading screen at all
+    if (introAlreadySeen()) {
+      loader.remove();
+      finishLoading(null);
+      return;
+    }
+
     const canvas = loader.querySelector('.loader__canvas');
     const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
 
@@ -144,6 +167,28 @@
     let startTime = null;
     let rafId = 0;
     let observer = null;
+
+    // The skip prompt: plain text in the last row of the grid. The digits behind it
+    // are left out (see draw), so it sits in the grid like part of the matrix.
+    const touchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const hint = document.createElement('p');
+    hint.className = 'loader__hint';
+    hint.setAttribute('aria-hidden', 'true');
+    hint.textContent = touchOnly ? 'tap anywhere to skip' : 'press any key to skip';
+    loader.appendChild(hint);
+    let hole = null;   // the stretch of the last row that the prompt occupies
+
+    function placeHint() {
+      const c = canvas.getBoundingClientRect();
+      const l = loader.getBoundingClientRect();
+      const row = grid.rows - 1;
+      hint.style.left = (c.left - l.left + width / 2) + 'px';
+      hint.style.top = (c.top - l.top + grid.ys[row]) + 'px';
+      hint.style.bottom = 'auto';
+      hint.style.transform = 'translate(-50%, -50%)';
+      const half = hint.offsetWidth / 2 + grid.fontSize * 1.5;
+      hole = { row, left: width / 2 - half, right: width / 2 + half };
+    }
 
     // Lock scrolling while loading. Done here (not in the HTML) so the page
     // can never stay locked if this script fails to load.
@@ -174,6 +219,7 @@
       const changed = !grid || next.cols !== grid.cols || next.rows !== grid.rows;
       grid = next;
       if (changed) schedule = createSchedule(grid, reducedMotion);
+      placeHint();
     }
 
     // progress: 0 (start) to 1 (end) of the loading time
@@ -190,6 +236,11 @@
       const changing = []; // cells in the middle of a change: [index, newValue, how far along]
 
       for (let i = 0; i < count; i++) {
+        if (hole && ((i / cols) | 0) === hole.row) {
+          const x = xs[i % cols];
+          if (x > hole.left && x < hole.right) continue;   // under the skip prompt
+        }
+
         const list = schedule[i];
         let flips = 0;
         while (flips < list.length && list[flips] <= progress) flips++;
@@ -231,7 +282,27 @@
       cancelAnimationFrame(rafId);
       if (observer) observer.disconnect();
       window.removeEventListener('resize', resize);
+      document.removeEventListener('keydown', onKey);
       finishLoading(loader);
+    }
+
+    // Skipping: any key, or a click or tap anywhere. The loading screen then fades
+    // away a little faster than it normally does.
+    const openedAt = performance.now();
+    let skipped = false;
+
+    function skip() {
+      if (skipped || performance.now() - openedAt < SKIP_GRACE_MS) return;
+      skipped = true;
+      loader.classList.add('is-skipping');
+      complete();
+    }
+
+    function onKey(e) {
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;     // browser shortcuts
+      if (/^(Shift|Control|Alt|AltGraph|Meta|OS|CapsLock|Fn)$|^F\d+$/.test(e.key)) return;   // modifier and function keys
+      if (e.key === 'Enter' || e.key === ' ') e.preventDefault();     // don't also press something under the loader
+      skip();
     }
 
     function frame(now) {
@@ -243,6 +314,9 @@
       if (progress < 1) rafId = requestAnimationFrame(frame);
       else complete();
     }
+
+    document.addEventListener('keydown', onKey);
+    loader.addEventListener('click', skip);
 
     resize();
     window.addEventListener('resize', resize);
@@ -386,8 +460,12 @@
       area.setAttribute('readonly', '');
       area.style.position = 'fixed';
       area.style.opacity = '0';
+      area.style.fontSize = '16px';              // stops iPhone Safari zooming in
+      area.style.webkitUserSelect = 'text';      // text can't be selected by default on this site,
+      area.style.userSelect = 'text';            // so this temporary field opts back in
       document.body.appendChild(area);
       area.select();
+      area.setSelectionRange(0, text.length);    // iPhone Safari needs this as well
       const ok = document.execCommand('copy');
       area.remove();
       ok ? resolve() : reject(new Error('Copy failed'));
