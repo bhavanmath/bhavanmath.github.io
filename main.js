@@ -5,7 +5,7 @@
    2. Loading screen (a grid of 0s and 1s)
    3. Header, navigation and section numbers
    4. Copy email, footer year
-   5. Hero drawing (the Lorenz attractor)
+   5. Hero figure (an interactive Lorenz attractor)
    ========================================================================== */
 
 (() => {
@@ -40,6 +40,13 @@
   /* 2. Loading screen
      ====================================================================== */
   let loadingFinished = false;
+  let introDone = false;
+  const introWaiters = [];
+
+  // Runs a function once the loading screen is over (straight away if it already is)
+  function whenIntroDone(fn) {
+    if (introDone) fn(); else introWaiters.push(fn);
+  }
 
   // Reveals the page and fades the loader away. Safe to call more than once.
   function finishLoading(loader) {
@@ -48,6 +55,11 @@
 
     body.classList.remove('is-loading');
     root.classList.add('is-loaded');
+
+    introDone = true;
+    introWaiters.splice(0).forEach((fn) => {
+      try { fn(); } catch (err) { console.error(err); }
+    });
 
     if (!loader) return;
     rememberIntro();
@@ -502,65 +514,71 @@
   }
 
 
-  /* 5. Hero drawing: the Lorenz attractor
+  /* 5. Hero figure: the Lorenz attractor, interactive
      ====================================================================== */
-  // The path of a chaotic system, computed here with a standard numerical method
-  // (fourth-order Runge-Kutta) and drawn once as a thin line. Two paths start
-  // almost exactly together (one millionth apart) and slowly drift apart: the
-  // "butterfly effect". The older part of each path is fainter than the newer part.
-  // It is a still picture: nothing moves, and it only redraws if the screen is resized.
-  const LORENZ = { sigma: 10, rho: 28, beta: 8 / 3, step: 0.004, duration: 26, offset: 1e-6 };
+  // A textbook-style figure. Two paths of the Lorenz system (a chaotic system that
+  // came out of weather modelling) start one millionth apart. They travel together
+  // for a while and then part ways: sensitive dependence on initial conditions.
+  // Clicking or tapping the figure chooses where the two paths start. Each run plays
+  // for a few seconds and then stops, so nothing keeps running in the background, and
+  // a run is paused while the figure is off-screen. If there is not enough room for the
+  // figure it is left out, and the caption shrinks before the picture does.
+  const LORENZ = { sigma: 10, rho: 28, beta: 8 / 3 };
+  const FIG = {
+    step: 0.004,       // one integration step, in the system's own time units
+    duration: 26,      // length of one run, in time units
+    rate: 6.5,         // how fast a run plays, in time units per second (26 / 6.5 is 4 s)
+    warmSteps: 3600,   // the first run starts here along the attractor: the paths split about halfway through
+    offset: 1e-6,      // how far apart the two paths start
+    minWidth: 220,       // the smallest picture, in pixels, that is still worth showing
+    minHeight: 170,
+    minHeightShort: 140  // with only a one-line caption a slightly smaller picture is accepted
+  };
+  const FIG_VIEW = { width: 38.5, height: 44, midZ: 25 };   // the part of the x-z plane the picture shows (the attractor is 37 by 42.5)
+  const WIDE_LAYOUT = '(min-width: 48rem), (min-width: 32rem) and (max-height: 32rem)';   // keep in step with web.css
 
-  // Integrates dx/dt = sigma(y - x), dy/dt = x(rho - z) - y, dz/dt = xy - beta z
-  function lorenzRun(x, y, z, steps) {
-    const { sigma, rho, beta, step: dt } = LORENZ;
-    const out = new Float64Array(steps * 3);
-    for (let i = 0; i < steps; i++) {
-      const k1x = sigma * (y - x), k1y = x * (rho - z) - y, k1z = x * y - beta * z;
-      const ax = x + k1x * dt / 2, ay = y + k1y * dt / 2, az = z + k1z * dt / 2;
-      const k2x = sigma * (ay - ax), k2y = ax * (rho - az) - ay, k2z = ax * ay - beta * az;
-      const bx = x + k2x * dt / 2, by = y + k2y * dt / 2, bz = z + k2z * dt / 2;
-      const k3x = sigma * (by - bx), k3y = bx * (rho - bz) - by, k3z = bx * by - beta * bz;
-      const cx = x + k3x * dt, cy = y + k3y * dt, cz = z + k3z * dt;
-      const k4x = sigma * (cy - cx), k4y = cx * (rho - cz) - cy, k4z = cx * cy - beta * cz;
-      x += (k1x + 2 * k2x + 2 * k3x + k4x) * dt / 6;
-      y += (k1y + 2 * k2y + 2 * k3y + k4y) * dt / 6;
-      z += (k1z + 2 * k2z + 2 * k3z + k4z) * dt / 6;
-      out[i * 3] = x;
-      out[i * 3 + 1] = y;
-      out[i * 3 + 2] = z;
-    }
-    return out;
+  // The words around the picture. Edit freely. <var> marks a mathematical variable (shown in italics).
+  const FIG_TEXT = {
+    label: 'Figure 1.1',
+    title: 'Sensitive dependence on initial conditions.',
+    body: 'Two paths of the Lorenz system start 10\u207b\u2076 apart. ' +
+          'They stay together for a while, then part ways.',
+    short: 'Two Lorenz paths, 10\u207b\u2076 apart.',
+    equations: [
+      '<var>\u1e8b</var> = <var>\u03c3</var>(<var>y</var> \u2212 <var>x</var>)',
+      '<var>\u1e8f</var> = <var>x</var>(<var>\u03c1</var> \u2212 <var>z</var>) \u2212 <var>y</var>',
+      '<var>\u017c</var> = <var>xy</var> \u2212 <var>\u03b2z</var>'
+    ],
+    constants: '<var>\u03c3</var> = 10, <var>\u03c1</var> = 28, <var>\u03b2</var> = 8/3',
+    equationsSpoken: 'The Lorenz equations: x-dot equals sigma times y minus x. y-dot equals x times rho minus z, minus y. ' +
+                     'z-dot equals x y minus beta z. Sigma is 10, rho is 28 and beta is 8 over 3.'
+  };
+
+  // One step of the fourth-order Runge-Kutta method, done in place on s = [x, y, z]
+  function lorenzStep(s, dt) {
+    const sg = LORENZ.sigma, rh = LORENZ.rho, be = LORENZ.beta;
+    const x = s[0], y = s[1], z = s[2];
+    const k1x = sg * (y - x), k1y = x * (rh - z) - y, k1z = x * y - be * z;
+    const ax = x + k1x * dt / 2, ay = y + k1y * dt / 2, az = z + k1z * dt / 2;
+    const k2x = sg * (ay - ax), k2y = ax * (rh - az) - ay, k2z = ax * ay - be * az;
+    const bx = x + k2x * dt / 2, by = y + k2y * dt / 2, bz = z + k2z * dt / 2;
+    const k3x = sg * (by - bx), k3y = bx * (rh - bz) - by, k3z = bx * by - be * bz;
+    const cx = x + k3x * dt, cy = y + k3y * dt, cz = z + k3z * dt;
+    const k4x = sg * (cy - cx), k4y = cx * (rh - cz) - cy, k4z = cx * cy - be * cz;
+    s[0] = x + (k1x + 2 * k2x + 2 * k3x + k4x) * dt / 6;
+    s[1] = y + (k1y + 2 * k2y + 2 * k3y + k4y) * dt / 6;
+    s[2] = z + (k1z + 2 * k2z + 2 * k3z + k4z) * dt / 6;
   }
 
-  function buildLorenz() {
-    const steps = Math.round(LORENZ.duration / LORENZ.step);
-
-    // Let the path settle onto the attractor first, then start both paths from there
-    const warm = lorenzRun(0.1, 0, 0, 1000);
-    const n = warm.length - 3;
-    const start = [warm[n], warm[n + 1], warm[n + 2]];
-    const a = lorenzRun(start[0], start[1], start[2], steps);
-    const b = lorenzRun(start[0] + LORENZ.offset, start[1], start[2], steps);
-
-    // Flatten to the x-z plane (z pointing up) and measure the picture
-    const flat = (p) => {
-      const q = new Float32Array(steps * 2);
-      for (let i = 0; i < steps; i++) { q[i * 2] = p[i * 3]; q[i * 2 + 1] = -p[i * 3 + 2]; }
-      return q;
-    };
-    const pa = flat(a);
-    const pb = flat(b);
-
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    [pa, pb].forEach((q) => {
-      for (let i = 0; i < steps; i++) {
-        minX = Math.min(minX, q[i * 2]); maxX = Math.max(maxX, q[i * 2]);
-        minY = Math.min(minY, q[i * 2 + 1]); maxY = Math.max(maxY, q[i * 2 + 1]);
-      }
-    });
-
-    return { steps, pa, pb, minX, maxX, minY, maxY };
+  // 3.2e-4 shown as 3.2×10⁻⁴
+  function scientific(v) {
+    if (!(v > 0)) return '0';
+    const sup = { '-': '\u207b', 0: '\u2070', 1: '\u00b9', 2: '\u00b2', 3: '\u00b3', 4: '\u2074', 5: '\u2075', 6: '\u2076', 7: '\u2077', 8: '\u2078', 9: '\u2079' };
+    let e = Math.floor(Math.log10(v));
+    let m = v / Math.pow(10, e);
+    if (m.toFixed(1) === '10.0') { m = 1; e += 1; }
+    if (e === 0 || e === 1) return (m * Math.pow(10, e)).toFixed(1);   // 3.2 rather than 3.2×10⁰
+    return m.toFixed(1) + '\u00d710' + String(e).split('').map((c) => sup[c]).join('');
   }
 
   function toRgb(color, fallback) {
@@ -570,95 +588,289 @@
     return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
   }
 
-  function initHeroArt() {
+  function initHeroFigure() {
     const title = document.querySelector('.hero__title');
     if (!title) return;
 
-    const wrap = document.createElement('div');
-    wrap.className = 'hero__art';
-    const canvas = document.createElement('canvas');
-    canvas.setAttribute('role', 'img');
-    canvas.setAttribute('aria-label',
-      'Line drawing of the Lorenz attractor, the butterfly-shaped path of a chaotic system, ' +
-      'drawn from two almost identical starting points that slowly drift apart.');
-    wrap.appendChild(canvas);
-    title.insertAdjacentElement('afterend', wrap);
+    const touchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const verb = touchOnly ? 'Tap' : 'Click';
 
-    const ctx = canvas.getContext ? canvas.getContext('2d') : null;
-    if (!ctx) { wrap.remove(); return; }
+    // ---- Build the figure: the picture, then the caption under it
+    const figure = document.createElement('figure');
+    figure.className = 'hero__figure is-removed';
+    figure.setAttribute('data-arrange', 'below');
+    figure.setAttribute('data-level', 'full');
+    figure.innerHTML =
+      '<div class="hero__plot">' +
+        '<canvas class="hero__trail" role="button" tabindex="0"></canvas>' +
+        '<canvas class="hero__heads" aria-hidden="true"></canvas>' +
+      '</div>' +
+      '<figcaption class="hero__caption">' +
+        '<p class="fig__head"><span class="fig__label">' + FIG_TEXT.label + '</span><span class="fig__live" aria-hidden="true"></span></p>' +
+        '<p class="fig__short">' + FIG_TEXT.short + ' ' + verb + ' to restart.</p>' +
+        '<div class="fig__body">' +
+          '<p class="fig__text"><strong>' + FIG_TEXT.title + '</strong> ' + FIG_TEXT.body + ' ' + verb + ' anywhere in the figure to choose where they start.</p>' +
+          '<p class="fig__eq" role="img" aria-label="' + FIG_TEXT.equationsSpoken + '">' +
+            FIG_TEXT.equations.map((e) => '<span>' + e + '</span>').join(' ') + ' <span class="fig__const">' + FIG_TEXT.constants + '</span>' +
+          '</p>' +
+        '</div>' +
+      '</figcaption>';
+    title.insertAdjacentElement('afterend', figure);
 
-    const data = buildLorenz();
+    const plot = figure.querySelector('.hero__plot');
+    const trail = figure.querySelector('.hero__trail');
+    const heads = figure.querySelector('.hero__heads');
+    const live = figure.querySelector('.fig__live');
+    const ctxT = trail.getContext ? trail.getContext('2d') : null;
+    const ctxH = heads.getContext ? heads.getContext('2d') : null;
+    if (!ctxT || !ctxH) { figure.remove(); return; }
+
+    trail.setAttribute('aria-label', 'Lorenz attractor. Activate to start two new paths from a different point.');
+
     const styles = getComputedStyle(root);
     const bright = toRgb(styles.getPropertyValue('--text'), [242, 242, 242]);
     const dim = toRgb(styles.getPropertyValue('--text-3'), [118, 118, 118]);
+    const rgba = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
 
-    let drawnW = 0, drawnH = 0, drawnScale = 0, queued = 0;
+    // ---- The simulation: two paths, stored as (x, z) pairs for drawing
+    const steps = Math.round(FIG.duration / FIG.step);
+    const PA = new Float32Array((steps + 1) * 2);
+    const PB = new Float32Array((steps + 1) * 2);
+    const A = [0, 0, 0];
+    const B = [0, 0, 0];
+    let done = 0;           // steps completed so far
+    let started = false;    // has any run begun?
+    let running = false;    // is a run still playing?
+    let shown = false;      // is there room for the figure right now?
+    let onScreen = true;    // is the figure scrolled into view?
+    let start = { x: 0, z: 0 };
+    let rafId = 0;
+    let last = 0;
+    let fitQueued = 0;
+    let w = 0, h = 0, k = 1, ox = 0, oy = 0, dpr = 1;
 
-    // One path as a series of short strokes whose brightness grows from old to new
-    function strokePath(points, rgb, fromAlpha, toAlpha, x, y) {
-      const chunks = 60;
-      const per = Math.floor(data.steps / chunks);
-      for (let c = 0; c < chunks; c++) {
-        const t = c / (chunks - 1);
-        const alpha = fromAlpha + (toAlpha - fromAlpha) * Math.pow(t, 1.4);
-        ctx.strokeStyle = 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha.toFixed(3) + ')';
-        const first = c * per;
-        const last = Math.min(data.steps, first + per + 1);
-        ctx.beginPath();
-        ctx.moveTo(x(points[first * 2]), y(points[first * 2 + 1]));
-        for (let i = first + 1; i < last; i++) ctx.lineTo(x(points[i * 2]), y(points[i * 2 + 1]));
-        ctx.stroke();
-      }
+    // The first run starts on the attractor, at a point where the two paths part ways about halfway through
+    const settled = [0.1, 0, 0];
+    for (let i = 0; i < FIG.warmSteps; i++) lorenzStep(settled, FIG.step);
+
+    const X = (x) => ox + x * k;
+    const Y = (z) => oy - z * k;
+
+    function setSize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = plot.clientWidth;
+      h = plot.clientHeight;
+      [trail, heads].forEach((c) => {
+        c.width = Math.max(1, Math.round(w * dpr));
+        c.height = Math.max(1, Math.round(h * dpr));
+      });
+      // One scale factor for both directions, so the picture is never stretched
+      const exact = trail.width / w;
+      [ctxT, ctxH].forEach((c) => c.setTransform(exact, 0, 0, exact, 0, 0));
+      ctxT.lineWidth = 1;
+      ctxT.lineJoin = 'round';
+      ctxT.lineCap = 'round';
+      ctxH.lineWidth = 1;
+
+      const margin = Math.min(w, h) * 0.05;
+      k = Math.min((w - margin * 2) / FIG_VIEW.width, (h - margin * 2) / FIG_VIEW.height);
+      ox = w / 2;
+      oy = h / 2 + FIG_VIEW.midZ * k;
     }
 
-    function render() {
-      queued = 0;
-      const w = wrap.clientWidth;
-      const h = wrap.clientHeight;
-      const scale = Math.min(window.devicePixelRatio || 1, 2);
-      if (w === drawnW && h === drawnH && scale === drawnScale) return;
-      drawnW = w; drawnH = h; drawnScale = scale;
+    // One stretch of one path. Older parts are fainter, newer parts brighter.
+    function strokeRange(points, i0, i1, rgb, from, to) {
+      const f = ((i0 + i1) / 2) / steps;
+      ctxT.strokeStyle = rgba(rgb, (from + (to - from) * Math.pow(f, 1.4)).toFixed(3));
+      ctxT.beginPath();
+      ctxT.moveTo(X(points[i0 * 2]), Y(points[i0 * 2 + 1]));
+      for (let i = i0 + 1; i <= i1; i++) ctxT.lineTo(X(points[i * 2]), Y(points[i * 2 + 1]));
+      ctxT.stroke();
+    }
 
-      canvas.width = Math.max(1, Math.round(w * scale));
-      canvas.height = Math.max(1, Math.round(h * scale));
-      if (w < 120 || h < 110) return;   // not enough room: leave the space empty
+    function drawTrail(i0, i1) {
+      if (i1 <= i0) return;
+      strokeRange(PB, i0, i1, dim, 0.06, 0.6);       // the path that started a millionth away
+      strokeRange(PA, i0, i1, bright, 0.08, 0.9);    // the main path, on top
+    }
 
-      // One scale factor for both directions, so the drawing is never stretched
-      const exact = canvas.width / w;
-      ctx.setTransform(exact, 0, 0, exact, 0, 0);
+    function redrawAll() {
+      ctxT.clearRect(0, 0, w, h);
+      for (let i = 0; i < done; i += 100) drawTrail(i, Math.min(done, i + 100));
+    }
 
-      const margin = Math.min(w, h) * 0.07;
-      const spanX = data.maxX - data.minX;
-      const spanY = data.maxY - data.minY;
-      const k = Math.min((w - margin * 2) / spanX, (h - margin * 2) / spanY);
-      const offX = (w - spanX * k) / 2 - data.minX * k;
-      const offY = (h - spanY * k) / 2 - data.minY * k;
-      const x = (v) => v * k + offX;
-      const y = (v) => v * k + offY;
-
-      ctx.lineWidth = 1;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      strokePath(data.pb, dim, 0.06, 0.6, x, y);       // the path that started a millionth away
-      strokePath(data.pa, bright, 0.08, 0.9, x, y);    // the main path, on top
-
-      // A small dot where each path ends up
-      const end = data.steps - 1;
-      [[data.pb, dim], [data.pa, bright]].forEach(([points, rgb]) => {
-        ctx.fillStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
-        ctx.beginPath();
-        ctx.arc(x(points[end * 2]), y(points[end * 2 + 1]), 2.5, 0, Math.PI * 2);
-        ctx.fill();
+    // The ring marks where the paths started; the dots show where they are now
+    function drawHeads() {
+      ctxH.clearRect(0, 0, w, h);
+      if (!started) return;
+      ctxH.strokeStyle = rgba(bright, 0.7);
+      ctxH.beginPath();
+      ctxH.arc(X(start.x), Y(start.z), 5, 0, Math.PI * 2);
+      ctxH.stroke();
+      [[PB, dim], [PA, bright]].forEach(([points, rgb]) => {
+        ctxH.fillStyle = rgba(rgb, 1);
+        ctxH.beginPath();
+        ctxH.arc(X(points[done * 2]), Y(points[done * 2 + 1]), 2.8, 0, Math.PI * 2);
+        ctxH.fill();
       });
     }
 
-    function schedule() {
-      if (!queued) queued = requestAnimationFrame(render);
+    // Time and the distance between the two paths
+    function updateLive() {
+      const gap = Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]);
+      live.textContent = 't = ' + (done * FIG.step).toFixed(1) + '   \u03b4 = ' + scientific(gap);
     }
 
-    render();
-    window.addEventListener('resize', schedule);
-    if ('ResizeObserver' in window) new ResizeObserver(schedule).observe(wrap);
+    function advance(n) {
+      const from = done;
+      const count = Math.min(n, steps - done);
+      for (let i = 0; i < count; i++) {
+        lorenzStep(A, FIG.step);
+        lorenzStep(B, FIG.step);
+        done++;
+        PA[done * 2] = A[0]; PA[done * 2 + 1] = A[2];
+        PB[done * 2] = B[0]; PB[done * 2 + 1] = B[2];
+      }
+      return from;
+    }
+
+    function frame(now) {
+      rafId = 0;
+      if (!running || !shown || !onScreen) return;
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      const from = advance(Math.max(1, Math.round(FIG.rate * dt / FIG.step)));
+      drawTrail(from, done);
+      drawHeads();
+      updateLive();
+      if (done >= steps) { running = false; return; }
+      rafId = requestAnimationFrame(frame);
+    }
+
+    function schedule() {
+      if (running && shown && onScreen && !rafId) {
+        last = performance.now();
+        rafId = requestAnimationFrame(frame);
+      }
+    }
+
+    // Begin a run from the point (x0, z0)
+    function begin(x0, z0, y0) {
+      if (Math.abs(x0) < 0.25) x0 = x0 < 0 ? -0.25 : 0.25;    // not exactly on the z axis, where nothing happens
+      if (y0 === undefined) y0 = x0 + (Math.random() - 0.5) * 0.01;
+      A[0] = x0; A[1] = y0; A[2] = z0;
+      B[0] = x0 + FIG.offset; B[1] = y0; B[2] = z0;
+      PA[0] = A[0]; PA[1] = A[2];
+      PB[0] = B[0]; PB[1] = B[2];
+      done = 0;
+      started = true;
+      start = { x: x0, z: z0 };
+      ctxT.clearRect(0, 0, w, h);
+
+      if (reducedMotion) {          // no animation: show the finished picture at once
+        advance(steps);
+        redrawAll();
+        drawHeads();
+        updateLive();
+        running = false;
+        return;
+      }
+      running = true;
+      drawHeads();
+      updateLive();
+      schedule();
+    }
+
+    function beginAtPoint(clientX, clientY) {
+      const r = trail.getBoundingClientRect();
+      const x0 = Math.max(-30, Math.min(30, (clientX - r.left - ox) / k));
+      const z0 = Math.max(0.5, Math.min(60, (oy - (clientY - r.top)) / k));
+      begin(x0, z0);
+    }
+
+    function beginAtRandom() {
+      begin((Math.random() * 2 - 1) * 17, 8 + Math.random() * 32);
+    }
+
+    function beginDefault() {
+      if (started || !shown) return;
+      begin(settled[0], settled[2], settled[1]);
+    }
+
+    // ---- Is there room? Where does the figure go? How much caption fits?
+    function fit() {
+      fitQueued = 0;
+
+      // 1. On wide screens it goes beside the name. If the name is long enough to reach it,
+      //    it goes under the name instead, so the two never touch.
+      figure.classList.remove('is-below');
+      if (window.matchMedia(WIDE_LAYOUT).matches) {
+        const left = figure.getBoundingClientRect().left;
+        const range = document.createRange();
+        range.selectNodeContents(title);
+        let right = 0;
+        Array.from(range.getClientRects()).forEach((r) => { right = Math.max(right, r.right); });
+        if (right + 24 > left) figure.classList.add('is-below');
+      }
+
+      // 2. Keep the picture a good size. In a wide, short space the caption goes beside the
+      //    picture (like a margin note); otherwise it goes underneath. Either way the caption
+      //    gives up space first (equations, then the explanation) before the picture shrinks.
+      figure.classList.remove('is-removed');     // measure as it would really appear (with its bottom margin)
+      const box = figure.getBoundingClientRect();
+      const wideBox = box.width >= box.height * 1.3 && box.width >= 520;
+      const options = wideBox
+        ? [['side', 'full'], ['side', 'text'], ['below', 'full'], ['below', 'text'], ['below', 'short']]
+        : [['below', 'full'], ['below', 'text'], ['below', 'short']];
+      let fits = false;
+      options.some(([arrange, level]) => {
+        figure.setAttribute('data-arrange', arrange);
+        figure.setAttribute('data-level', level);
+        const needed = level === 'short' ? FIG.minHeightShort : FIG.minHeight;
+        fits = plot.clientWidth >= FIG.minWidth && plot.clientHeight >= needed;
+        return fits;
+      });
+
+      // 3. Not enough room at all: leave the figure out
+      figure.classList.toggle('is-removed', !fits);
+      shown = fits;
+      if (!fits) return;
+
+      setSize();
+      if (started) { redrawAll(); drawHeads(); }
+      else whenIntroDone(beginDefault);
+      schedule();
+    }
+
+    function queueFit() {
+      if (!fitQueued) fitQueued = requestAnimationFrame(fit);
+    }
+
+    trail.addEventListener('click', (e) => { if (shown) beginAtPoint(e.clientX, e.clientY); });
+    trail.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      if (shown) beginAtRandom();
+    });
+
+    window.addEventListener('resize', queueFit);
+    if ('ResizeObserver' in window) {
+      const observer = new ResizeObserver(queueFit);
+      observer.observe(figure);
+      observer.observe(title);
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueFit);
+
+    // Pause a run while the figure is scrolled out of view
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver((entries) => {
+        onScreen = entries[entries.length - 1].isIntersecting;
+        if (!onScreen && rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+        schedule();
+      }).observe(figure);
+    }
+
+    fit();
   }
 
 
@@ -669,7 +881,7 @@
   if (!window.location.hash) window.scrollTo(0, 0);
 
   // Each step is isolated: if one fails, the others (and the loader) still run.
-  [initNavigation, initSectionNumbers, initCopyEmail, setFooterYear, initHeroArt].forEach((step) => {
+  [initNavigation, initSectionNumbers, initCopyEmail, setFooterYear, initHeroFigure].forEach((step) => {
     try { step(); } catch (err) { console.error(err); }
   });
 
